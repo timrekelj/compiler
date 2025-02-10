@@ -40,9 +40,10 @@ typedef struct {
 void lexer(char* filename);
 
 // logging.c
-void logger_log(char* fmt, ...);
-void logger_error(char* fmt, ...);
-void logger_warn(char* fmt, ...);
-void logger_logtok(Token token, char* fmt, ...);
-void logger_errortok(Token token, char* fmt, ...);
-void logger_warntok(Token token, char* fmt, ...);
+void linfo(char* fmt, ...);
+void lerror(char* fmt, ...);
+void lwarn(char* fmt, ...);
+
+void linfot(Token token, char* fmt, ...);
+void lerrort(Token token, char* fmt, ...);
+void lwarnt(Token token, char* fmt, ...);

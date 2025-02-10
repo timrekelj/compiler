@@ -6,45 +6,45 @@
 enum {
     ERROR,
     WARNING,
-    LOG
+    INFO
 };
 
-static void printtok(Token token, int type, char* fmt, va_list args) {
+static void print_token(Token token, int type, char* fmt, va_list args) {
     switch (type) {
         case ERROR:
-            fprintf(stderr, "\e[1;31mERROR\e[0m ");
+            fprintf(stderr, "\e[1;31m  ERROR\e[0m ");
             break;
         case WARNING:
             fprintf(stderr, "\e[1;33mWARNING\e[0m ");
             break;
-        case LOG:
-            fprintf(stderr, "\e[1;92mLOG\e[0m ");
+        case INFO:
+            fprintf(stderr, "\e[1;92m   INFO\e[0m ");
             break;
     }
 
-    fprintf(stderr, "Line: %d; Position: %d\n", token.loc.start_line, token.loc.start_pos);
-    fprintf(stderr, fmt, args);
+    fprintf(stderr, "\e[1;90m(\"%s\" %d:%d)\e[0m ", token.value, token.loc.start_line, token.loc.start_pos);
+    vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 }
 
 static void print(int type, char* fmt, va_list args) {
     switch (type) {
         case ERROR:
-            fprintf(stderr, "\e[1;31mERROR\e[0m ");
+            fprintf(stderr, "\e[1;31m  ERROR\e[0m ");
             break;
         case WARNING:
             fprintf(stderr, "\e[1;33mWARNING\e[0m ");
             break;
-        case LOG:
-            fprintf(stderr, "\e[1;92mLOG\e[0m ");
+        case INFO:
+            fprintf(stderr, "\e[1;92m   INFO\e[0m ");
             break;
     }
 
-    fprintf(stderr, fmt, args);
+    vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 }
 
-void logger_error(char* fmt, ...) {
+void lerror(char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     print(ERROR, fmt, args);
@@ -52,38 +52,38 @@ void logger_error(char* fmt, ...) {
     exit(1);
 }
 
-void logger_warn(char* fmt, ...) {
+void lwarn(char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     print(WARNING, fmt, args);
     va_end(args);
 }
 
-void logger_log(char* fmt, ...) {
+void linfo(char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    print(LOG, fmt, args);
+    print(INFO, fmt, args);
     va_end(args);
 }
 
-void logger_errortok(Token token, char* fmt, ...) {
+void lerrort(Token token, char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printtok(token, ERROR, fmt, args);
+    print_token(token, ERROR, fmt, args);
     va_end(args);
     exit(1);
 }
 
-void logger_warntok(Token token, char* fmt, ...) {
+void lwarnt(Token token, char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printtok(token, WARNING, fmt, args);
+    print_token(token, WARNING, fmt, args);
     va_end(args);
 }
 
-void logger_logtok(Token token, char* fmt, ...) {
+void linfot(Token token, char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printtok(token, LOG, fmt, args);
+    print_token(token, INFO, fmt, args);
     va_end(args);
 }

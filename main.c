@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    logger_log("Test");
-    logger_warn("Test warning");
-    logger_error("Test error");
+    char* filename = argv[1];
+
+    lexer(filename);
 }
