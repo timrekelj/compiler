@@ -1,24 +1,21 @@
 package main
 
 import "core:fmt"
-
-token: Token = {
-    token_type = TokenType.STRING,
-    value = "value",
-    position = {
-        start = { line = 1, col = 1 },
-        end = { line = 1, col = 1 }
-    }
-}
+import "core:os"
 
 main :: proc() {
-    print(.INFO, "this is %s log", "INFO")
-    print(.WARNING, "this is %s log", "WARNING")
-    print(.ERROR, "this is %s log", "ERROR")
+    args := os.args
 
-    fmt.println()
+    if len(args) != 2 {
+        print_help()
+        os.exit(0)
+    }
 
-    print_token(.INFO, token, "this is %s log", "INFO")
-    print_token(.WARNING, token, "this is %s log", "WARNING")
-    print_token(.ERROR, token, "this is %s log", "ERROR")
+    lexer(args[1])
+}
+
+print_help :: proc() {
+    fmt.println("This is a compiler for language called PINS")
+    fmt.println("Usage:")
+    fmt.println("\tcompiler [filename]")
 }

@@ -30,13 +30,9 @@ Location :: struct {
     col: i32
 }
 
-Position :: struct {
-    start: Location,
-    end: Location
-}
-
 Token :: struct {
     token_type: TokenType,
-    position: Position,
+    start_loc: Location,
+    end_loc: Location,
     value: string
 }
