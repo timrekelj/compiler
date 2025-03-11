@@ -17,12 +17,26 @@ TokenType :: enum {
     NOT,
     PLUS,
     MINUS,
-    ASTERIX,
+    ASTERISK,
     SLASH,
     PERCENT,
     CARET,
     LBRACKET,
-    RBRACKET
+    RBRACKET,
+
+    IDENTIFIER,
+
+    // Keywords
+	FUN,
+	VAR,
+	IF,
+	THEN,
+	ELSE,
+	WHILE,
+	DO,
+	LET,
+	IN,
+	END,
 }
 
 Location :: struct {

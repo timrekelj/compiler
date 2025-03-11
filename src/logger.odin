@@ -42,6 +42,10 @@ tok_printf :: proc(type: LogType, token: Token, format: string, args: ..any, flu
         flush=flush
     )
     fmt.fprintf(os.stdout, format, ..args, flush=flush, newline=true)
+
+    if type == .ERROR {
+        os.exit(1)
+    }
 }
 
 loc_printf :: proc(type: LogType, location: Location, format: string, args: ..any, flush:bool = true) {
@@ -54,4 +58,8 @@ loc_printf :: proc(type: LogType, location: Location, format: string, args: ..an
         flush=flush
     )
     fmt.fprintf(os.stdout, format, ..args, flush=flush, newline=true)
+
+    if type == .ERROR {
+        os.exit(1)
+    }
 }
