@@ -11,7 +11,11 @@ main :: proc() {
 		os.exit(0)
 	}
 
-	tokens: []Token = lexer(args[1])
+	tokens, err := lexer(args[1])
+
+	if err != nil {
+	   printf(.ERROR, "Error!") // TODO: Implement error to string
+	}
 
 	for token in tokens {
 		printf(
