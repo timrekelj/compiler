@@ -7,14 +7,14 @@ import "core:log"
 
 @(test)
 everything_test :: proc(t: ^testing.T) {
-    tokens, err := compiler.lexer("./tests/lexer/example.pins")
+    tokens, err := compiler.lexer("./tests/lexer/everything.pins")
 
-    testing.expect(t, err == nil, "Error should be nil")
+    testing.expect(t, err == nil, "Error should be nil (%s)", compiler.error_string(err))
 
     expected := []compiler.Token{{
         token_type = .NUMBER,
         start_loc = compiler.Location{line = 1, col = 1},
-        end_loc = compiler.Location{line = 2, col = 0},
+        end_loc = compiler.Location{line = 1, col = 2},
         value = "10"
     }, {
         token_type = .CHAR,
@@ -196,10 +196,71 @@ everything_test :: proc(t: ^testing.T) {
         start_loc = compiler.Location{line = 37, col = 1},
         end_loc = compiler.Location{line = 37, col = 3},
         value = "end"
+    }, {
+        token_type = .NUMBER,
+        start_loc = compiler.Location{line = 38, col = 1},
+        end_loc = compiler.Location{line = 38, col = 3},
+        value = "-11"
+    }, {
+        token_type = .NUMBER,
+        start_loc = compiler.Location{line = 39, col = 1},
+        end_loc = compiler.Location{line = 39, col = 3},
+        value = "+12"
     }}
 
     testing.expectf(t, len(tokens) == len(expected), "Wrong length of tokens (expected %d, got %d)", len(expected), len(tokens))
     for token, i in tokens {
-        testing.expectf(t, tokens[i] == expected[i], "Wrong token (expected '%s', got '%s')", expected[i].value, tokens[i].value)
+        testing.expectf(
+            t,
+            tokens[i] == expected[i],
+            "Wrong token (expected '%s' '%s' '%d:%d - %d:%d', got '%s' '%s' '%d:%d - %d:%d')",
+            expected[i].token_type,
+            expected[i].value,
+            expected[i].start_loc.col,
+            expected[i].start_loc.line,
+            expected[i].end_loc.col,
+            expected[i].end_loc.line,
+            tokens[i].token_type,
+            tokens[i].value,
+            tokens[i].start_loc.col,
+            tokens[i].start_loc.line,
+            tokens[i].end_loc.col,
+            tokens[i].end_loc.line,
+        )
     }
+}
+
+@(test)
+unfinished_string_test :: proc(t: ^testing.T) {
+    tokens, err := compiler.lexer("./tests/lexer/unfinished_string.pins")
+
+    testing.expect(t, err == compiler.Lexer_Error.String, "There should be unfinished string error")
+}
+
+@(test)
+incorrect_token_test00 :: proc(t: ^testing.T) {
+    tokens, err := compiler.lexer("./tests/lexer/incorrect_token00.pins")
+
+    testing.expect(t, err == compiler.Lexer_Error.Incorrect_Token, "There should be incorrect token error")
+}
+
+@(test)
+incorrect_token_test01 :: proc(t: ^testing.T) {
+    tokens, err := compiler.lexer("./tests/lexer/incorrect_token01.pins")
+
+    testing.expect(t, err == compiler.Lexer_Error.Incorrect_Token, "There should be incorrect token error")
+}
+
+@(test)
+incorrect_escape_test00 :: proc(t: ^testing.T) {
+    tokens, err := compiler.lexer("./tests/lexer/incorrect_escape00.pins")
+
+    testing.expect(t, err == compiler.Lexer_Error.Escaped_Character, "There should be incorrect escape error")
+}
+
+@(test)
+incorrect_escape_test01 :: proc(t: ^testing.T) {
+    tokens, err := compiler.lexer("./tests/lexer/incorrect_escape01.pins")
+
+    testing.expect(t, err == compiler.Lexer_Error.Escaped_Character, "There should be incorrect escape error")
 }

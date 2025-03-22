@@ -69,6 +69,7 @@ peek :: proc(file: File) -> (c: u8, err: Error) {
 @(private="file")
 read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
     start_loc: Location = file.curr_loc
+    end_loc: Location = file.curr_loc
 
     value_builder, builder_err := strings.builder_make()
     defer strings.builder_destroy(&value_builder)
@@ -79,20 +80,21 @@ read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
 
     strings.write_byte(&value_builder, last_char)
     curr_c := nextc(file) or_return
+    end_loc = file.curr_loc
 
     for curr_c >= '0' && curr_c <= '9'{
+        end_loc = file.curr_loc
         strings.write_byte(&value_builder, curr_c)
         curr_c = nextc(file) or_return
     }
 
     token = Token{
         token_type = .NUMBER,
-        value = strings.clone(strings.to_string(value_builder)),
+        value = strings.clone(strings.to_string(value_builder), context.temp_allocator),
         start_loc = start_loc,
-        end_loc = file.curr_loc
+        end_loc = end_loc
     }
 
-    printf(.INFO, "token: %s", token.value)
     return
 }
 
@@ -136,7 +138,7 @@ read_char :: proc(file: ^File) -> (token: Token, err: Error) {
 
     token = {
         token_type = .CHAR,
-        value = strings.clone(strings.to_string(value_builder)),
+        value = strings.clone(strings.to_string(value_builder), context.temp_allocator),
         start_loc = start_loc,
         end_loc = file.curr_loc
     }
@@ -169,7 +171,7 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
 
     token = {
         token_type = .STRING,
-        value = strings.clone(strings.to_string(value_builder)),
+        value = strings.clone(strings.to_string(value_builder), context.temp_allocator),
         start_loc = start_loc,
         end_loc = file.curr_loc
     }
@@ -315,7 +317,6 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                 continue
             case '0'..='9':
                 num := read_number(curr_c, &file) or_return
-                printf(.INFO, "num: %s", num.value)
                 append(&dyn_tokens, num)
             case '"':
                 str := read_string(&file) or_return
@@ -473,19 +474,31 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                     end_loc=file.curr_loc,
                 })
             case '+':
-                append(&dyn_tokens, Token {
-                    token_type=.PLUS,
-                    value="+",
-                    start_loc=file.curr_loc,
-                    end_loc=file.curr_loc,
-                })
+                next_c := peek(file) or_return
+                if next_c >= '0' && next_c <= '9' {
+                    num := read_number(curr_c, &file) or_return
+                    append(&dyn_tokens, num)
+                } else {
+                    append(&dyn_tokens, Token {
+                        token_type=.PLUS,
+                        value="+",
+                        start_loc=file.curr_loc,
+                        end_loc=file.curr_loc,
+                    })
+                }
             case '-':
-                append(&dyn_tokens, Token {
-                    token_type=.MINUS,
-                    value="-",
-                    start_loc=file.curr_loc,
-                    end_loc=file.curr_loc,
-                })
+                next_c := peek(file) or_return
+                if next_c >= '0' && next_c <= '9' {
+                    num := read_number(curr_c, &file) or_return
+                    append(&dyn_tokens, num)
+                } else {
+                    append(&dyn_tokens, Token {
+                        token_type=.MINUS,
+                        value="-",
+                        start_loc=file.curr_loc,
+                        end_loc=file.curr_loc,
+                    })
+                }
             case '*':
                 append(&dyn_tokens, Token {
                     token_type=.ASTERISK,
@@ -514,6 +527,8 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
+            case:
+                err = Lexer_Error.Incorrect_Token
         }
         curr_c = nextc(&file) or_return
     }
