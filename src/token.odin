@@ -1,6 +1,6 @@
 package main
 
-TokenType :: enum {
+TokenType :: enum u32 {
     NUMBER,
     CHAR,
     STRING,

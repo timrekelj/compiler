@@ -69,6 +69,7 @@ peek :: proc(file: File) -> (c: u8, err: Error) {
 @(private="file")
 read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
     start_loc: Location = file.curr_loc
+    end_loc: Location = file.curr_loc
 
     value_builder, builder_err := strings.builder_make()
     defer strings.builder_destroy(&value_builder)
@@ -79,8 +80,12 @@ read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
 
     strings.write_byte(&value_builder, last_char)
     curr_c := nextc(file) or_return
+    end_loc = file.curr_loc
 
-    for curr_c >= '0' && curr_c <= '9'{
+    assert(curr_c >= '0' && curr_c <= '9', "Current character should be a number")
+
+    for curr_c >= '0' && curr_c <= '9' {
+        end_loc = file.curr_loc
         strings.write_byte(&value_builder, curr_c)
         curr_c = nextc(file) or_return
     }
@@ -89,10 +94,9 @@ read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
         token_type = .NUMBER,
         value = strings.clone(strings.to_string(value_builder)),
         start_loc = start_loc,
-        end_loc = file.curr_loc
+        end_loc = end_loc
     }
 
-    printf(.INFO, "token: %s", token.value)
     return
 }
 
@@ -128,13 +132,14 @@ read_char :: proc(file: ^File) -> (token: Token, err: Error) {
         strings.write_byte(&value_builder, curr_c)
     }
 
+
     curr_c = nextc(file) or_return
     if curr_c != '\'' {
         err = Lexer_Error.Escaped_Character
         return
     }
 
-    token = {
+    token = Token{
         token_type = .CHAR,
         value = strings.clone(strings.to_string(value_builder)),
         start_loc = start_loc,
@@ -167,7 +172,7 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
         curr_c = nextc(file) or_return
     }
 
-    token = {
+    token = Token{
         token_type = .STRING,
         value = strings.clone(strings.to_string(value_builder)),
         start_loc = start_loc,
@@ -177,10 +182,7 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
     return
 }
 
-lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
-    dyn_tokens: [dynamic]Token
-    defer delete(dyn_tokens)
-
+lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
     fp, fp_err := os.open(filename)
     if fp_err != nil {
         err = General_Error.Reading_File
@@ -193,8 +195,12 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
         curr_loc = { line = 1, col = 0 }
     }
 
-    curr_c := nextc(&file) or_return
-    for curr_c != 0 {
+    curr_c: u8
+    for {
+        curr_c = nextc(&file) or_return
+
+        if curr_c == 0 { break }
+
         // Keywords and identifiers
         if (curr_c >= 'a' && curr_c <= 'z') ||
             (curr_c >= 'A' && curr_c <= 'Z') ||
@@ -220,115 +226,117 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
             }
 
             name, to_lower_err := strings.clone(strings.to_string(name_builder))
+            defer delete_string(name)
             if to_lower_err != nil {
                 err = General_Error.Memory_Allocation
                 return
             }
-            defer delete_string(name)
 
             switch name {
                 case "fun":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.FUN,
                         value="fun",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                 case "var":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.VAR,
                         value="var",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "if":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.IF,
                         value="if",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "then":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.THEN,
                         value="then",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "else":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.ELSE,
                         value="else",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "while":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.WHILE,
                         value="while",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "do":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.DO,
                         value="do",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "let":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.LET,
                         value="let",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "in":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.IN,
                         value="in",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                	case "end":
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.END,
                         value="end",
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
                 case:
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.IDENTIFIER,
-                        value=name,
+                        value=strings.clone(name),
                         start_loc=start_loc,
                         end_loc=end_loc
                     })
             }
+            continue
         }
 
         switch curr_c {
             case '\t', '\n', ' ': // Whitespace
-                for curr_c != 0 && (curr_c == '\t' || curr_c == '\n' || curr_c == ' ') {
-                    curr_c = nextc(&file) or_return
+                next_c := peek(file) or_return
+                for next_c != 0 && (next_c == '\t' || next_c == '\n' || next_c == ' ') {
+                    nextc(&file) or_return
+                    next_c = peek(file) or_return
                 }
                 continue
             case '0'..='9':
                 num := read_number(curr_c, &file) or_return
-                printf(.INFO, "num: %s", num.value)
-                append(&dyn_tokens, num)
+                append(&tokens, num)
             case '"':
                 str := read_string(&file) or_return
-                append(&dyn_tokens, str)
+                append(&tokens, str)
             case '\'':
                 c := read_char(&file) or_return
-                append(&dyn_tokens, c)
+                append(&tokens, c)
             case '=':
                 next_char := peek(file) or_return
 
                 switch next_char {
                     case '=':
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.EQ,
                             value="==",
                             start_loc=file.curr_loc,
@@ -339,7 +347,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                         })
                         nextc(&file) or_return
                     case:
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.ASSIGN,
                             value="=",
                             start_loc=file.curr_loc,
@@ -351,7 +359,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
 
                 switch next_char {
                     case '=':
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.NEQ,
                             value="!=",
                             start_loc=file.curr_loc,
@@ -362,7 +370,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                         })
                         nextc(&file) or_return
                     case:
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.NOT,
                             value="!",
                             start_loc=file.curr_loc,
@@ -374,7 +382,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
 
                 switch next_char {
                     case '=':
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.GEQ,
                             value=">=",
                             start_loc=file.curr_loc,
@@ -385,7 +393,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                         })
                         nextc(&file) or_return
                     case:
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.GT,
                             value=">",
                             start_loc=file.curr_loc,
@@ -397,7 +405,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
 
                 switch next_char {
                     case '=':
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.LEQ,
                             value="<=",
                             start_loc=file.curr_loc,
@@ -408,7 +416,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                         })
                         nextc(&file) or_return
                     case:
-                        append(&dyn_tokens, Token {
+                        append(&tokens, Token {
                             token_type=.LT,
                             value="<",
                             start_loc=file.curr_loc,
@@ -419,7 +427,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                 next_char := peek(file) or_return
 
                 if (next_char == '|') {
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.OR,
                         value="||",
                         start_loc=file.curr_loc,
@@ -437,7 +445,7 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                 next_char := peek(file) or_return
 
                 if (next_char == '&') {
-                    append(&dyn_tokens, Token {
+                    append(&tokens, Token {
                         token_type=.AND,
                         value="&&",
                         start_loc=file.curr_loc,
@@ -452,73 +460,96 @@ lexer :: proc(filename: string) -> (tokens: []Token, err: Error) {
                     return
                 }
             case ',':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.COMMA,
                     value=",",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case '(':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.LBRACKET,
                     value="(",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case ')':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.RBRACKET,
                     value=")",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case '+':
-                append(&dyn_tokens, Token {
-                    token_type=.PLUS,
-                    value="+",
-                    start_loc=file.curr_loc,
-                    end_loc=file.curr_loc,
-                })
+                next_c := peek(file) or_return
+                if next_c >= '0' && next_c <= '9' {
+                    num := read_number(curr_c, &file) or_return
+                    append(&tokens, num)
+                } else {
+                    append(&tokens, Token {
+                        token_type=.PLUS,
+                        value="+",
+                        start_loc=file.curr_loc,
+                        end_loc=file.curr_loc,
+                    })
+                }
             case '-':
-                append(&dyn_tokens, Token {
-                    token_type=.MINUS,
-                    value="-",
-                    start_loc=file.curr_loc,
-                    end_loc=file.curr_loc,
-                })
+                next_c := peek(file) or_return
+                if next_c >= '0' && next_c <= '9' {
+                    num := read_number(curr_c, &file) or_return
+                    append(&tokens, num)
+                } else {
+                    append(&tokens, Token {
+                        token_type=.MINUS,
+                        value="-",
+                        start_loc=file.curr_loc,
+                        end_loc=file.curr_loc,
+                    })
+                }
             case '*':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.ASTERISK,
                     value="*",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case '/':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.SLASH,
                     value="/",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case '^':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.CARET,
                     value="^",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
             case '%':
-                append(&dyn_tokens, Token {
+                append(&tokens, Token {
                     token_type=.PERCENT,
                     value="%",
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
+            case:
+                err = Lexer_Error.Incorrect_Token
         }
-        curr_c = nextc(&file) or_return
     }
 
-    tokens = dyn_tokens[:]
-
     return
+}
+
+cleanup_tokens :: proc(tokens: ^[dynamic]Token) {
+    for token in tokens {
+        if token.token_type == .IDENTIFIER ||
+           token.token_type == .STRING ||
+           token.token_type == .CHAR ||
+           token.token_type == .NUMBER {
+            delete(token.value)
+        }
+    }
+    delete(tokens^)
 }

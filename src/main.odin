@@ -4,17 +4,16 @@ import "core:fmt"
 import "core:os"
 
 main :: proc() {
-	args := os.args
-
-	if len(args) != 2 {
+	if len(os.args) != 2 {
 		print_help()
 		os.exit(0)
 	}
 
-	tokens, err := lexer(args[1])
+	tokens, err := lexer(os.args[1])
+	defer cleanup_tokens(&tokens)
 
 	if err != nil {
-	   printf(.ERROR, "Error!") // TODO: Implement error to string
+	   printf(.ERROR, "Error: %s", error_string(err))
 	}
 
 	for token in tokens {
