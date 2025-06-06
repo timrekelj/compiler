@@ -79,15 +79,17 @@ read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
     }
 
     strings.write_byte(&value_builder, last_char)
-    curr_c := nextc(file) or_return
     end_loc = file.curr_loc
 
-    assert(curr_c >= '0' && curr_c <= '9', "Current character should be a number")
-
-    for curr_c >= '0' && curr_c <= '9' {
+    // Read additional digits if they exist
+    for {
+        next_char := peek(file^) or_return
+        if next_char < '0' || next_char > '9' {
+            break
+        }
+        curr_c := nextc(file) or_return
         end_loc = file.curr_loc
         strings.write_byte(&value_builder, curr_c)
-        curr_c = nextc(file) or_return
     }
 
     token = Token{
@@ -96,7 +98,6 @@ read_number :: proc(last_char: u8, file: ^File) -> (token: Token, err: Error) {
         start_loc = start_loc,
         end_loc = end_loc
     }
-
     return
 }
 
@@ -311,7 +312,10 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
                         end_loc=end_loc
                     })
             }
-            continue
+            // Don't continue here - process the character that terminated the identifier
+            
+            // Check for EOF after identifier processing
+            if curr_c == 0 { break }
         }
 
         switch curr_c {
@@ -325,6 +329,7 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
             case '0'..='9':
                 num := read_number(curr_c, &file) or_return
                 append(&tokens, num)
+                continue
             case '"':
                 str := read_string(&file) or_return
                 append(&tokens, str)
@@ -485,6 +490,7 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
                 if next_c >= '0' && next_c <= '9' {
                     num := read_number(curr_c, &file) or_return
                     append(&tokens, num)
+                    continue
                 } else {
                     append(&tokens, Token {
                         token_type=.PLUS,
@@ -498,6 +504,7 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
                 if next_c >= '0' && next_c <= '9' {
                     num := read_number(curr_c, &file) or_return
                     append(&tokens, num)
+                    continue
                 } else {
                     append(&tokens, Token {
                         token_type=.MINUS,
@@ -534,6 +541,15 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
                     start_loc=file.curr_loc,
                     end_loc=file.curr_loc,
                 })
+            case '#':
+                // Skip comment until end of line
+                for {
+                    next_char := peek(file) or_return
+                    if next_char == '\n' || next_char == 0 {
+                        break
+                    }
+                    nextc(&file) or_return
+                }
             case:
                 err = Lexer_Error.Incorrect_Token
         }
@@ -552,4 +568,19 @@ cleanup_tokens :: proc(tokens: ^[dynamic]Token) {
         }
     }
     delete(tokens^)
+}
+
+print_tokens :: proc(tokens: ^[dynamic]Token) {
+    for token in tokens {
+		printf(
+			.INFO,
+			"%s: %s (%d:%d - %d:%d)",
+			token.token_type,
+			token.value,
+			token.start_loc.line,
+			token.start_loc.col,
+			token.end_loc.line,
+			token.end_loc.col,
+		)
+	}
 }

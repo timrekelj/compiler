@@ -1,0 +1,67 @@
+var seed=1
+fun random()=seed=seed*1664525+1013904223,seed
+
+fun bubblesort(arraddr,n)=
+	let
+		var i=0 var j=0 var tmp=0 var cmps=0
+	in
+		i=n-1,
+		while i>=0 do
+			j=0,
+			while j<i do
+				if (arraddr+(j+0)*4)^>(arraddr+(j+1)*4)^ then
+					tmp=(arraddr+(j+0)*4)^,
+					(arraddr+(j+0)*4)^=(arraddr+(j+1)*4)^,
+					(arraddr+(j+1)*4)^=tmp
+				end,
+				cmps=cmps+1,
+				j=j+1
+			end,
+			i=i-1
+		end,
+		cmps
+	end
+
+fun main()=
+	let
+		var n=0
+		var arr=0
+		var i=0
+		var r=0
+		var cmps=0
+	in
+		n=100,#getint(),
+		arr=new(n*4),
+		i=0,while i<n do
+			r=random(),
+			if r<0 then r=-r end,
+			r=r%50,
+			(arr+4*i)^=r,
+			i=i+1
+		end,
+		putstr("UNSORTED : \00"),
+		i=0,while i<n do
+			putint((arr+4*i)^),
+			if i<(n-1) then putstr(",\00") end,
+			i=i+1
+		end,putstr("\n\00"),
+		putstr("*** BUBBLESORT *** \00"),
+		cmps=bubblesort(arr,n),
+		putint(cmps),putstr("\n\00"),
+		putstr("SORTED   : \00"),
+		i=0,while i<n do
+			putint((arr+4*i)^),
+			if i<(n-1) then putstr(",\00") end,
+			i=i+1
+		end,putstr("\n\00"),
+		del(arr),
+		0
+	end
+
+fun exit(exitcode)
+fun getint()
+fun putint(intvalue)
+fun getstr(straddr)
+fun putstr(straddr)
+fun new(size)
+fun del(addr)

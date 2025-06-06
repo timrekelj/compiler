@@ -1,0 +1,33 @@
+fun factorial(n) = 
+    if n == 0 then 
+        1 
+    else 
+        n * factorial(n - 1) 
+    end
+
+var result = factorial(5)
+
+fun fibonacci(n) = 
+    if n <= 1 then 
+        n 
+    else 
+        fibonacci(n - 1) + fibonacci(n - 2) 
+    end
+
+var x = 10
+var y = 20, 30
+var message = "Hello World"
+
+fun add(a, b) = a + b
+
+fun test_expressions() = 
+    let 
+        var local_x = 42
+        var local_y = 3 * 4 + 5
+    in 
+        local_x + local_y 
+    end
+
+while x > 0 do 
+    x = x - 1 
+end

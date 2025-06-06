@@ -1,0 +1,20 @@
+fun factorial(n) = 
+    if n == 0 then 
+        1 
+    else 
+        n * factorial(n - 1) 
+    end
+
+var result = 0
+
+fun add(a, b) = a + b
+
+var x = 10
+var y = 0
+
+fun test() = 
+    if x > y then 
+        x 
+    else 
+        y 
+    end

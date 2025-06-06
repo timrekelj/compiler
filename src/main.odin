@@ -12,22 +12,18 @@ main :: proc() {
 	tokens, err := lexer(os.args[1])
 	defer cleanup_tokens(&tokens)
 
+	print_tokens(&tokens)
+
 	if err != nil {
-	   printf(.ERROR, "Error: %s", error_string(err))
+	   printf(.ERROR, error_string(err))
 	}
 
-	for token in tokens {
-		printf(
-			.INFO,
-			"%s: %s (%d:%d - %d:%d)",
-			token.token_type,
-			token.value,
-			token.start_loc.line,
-			token.start_loc.col,
-			token.end_loc.line,
-			token.end_loc.col,
-		)
+	ast := parse(tokens)
+	if ast != nil {
+		printf(.INFO, "Syntax analysis completed successfully")
+		print_ast(ast)
 	}
+
 }
 
 print_help :: proc() {

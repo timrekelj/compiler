@@ -1,0 +1,15 @@
+fun factorial(n) = 
+    if n == 0 then 
+        1 
+    else 
+        n * factorial(n - 1) 
+    end
+
+var result = factorial(5)
+
+fun add(a, b) = a + b
+
+var x = 10
+var y = 20
+
+fun simple() = x + y

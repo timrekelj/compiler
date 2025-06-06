@@ -37,6 +37,9 @@ TokenType :: enum u32 {
 	LET,
 	IN,
 	END,
+	
+	// Special
+	EOF,
 }
 
 Location :: struct {
