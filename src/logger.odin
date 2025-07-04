@@ -31,6 +31,12 @@ printf :: proc(type: LogType, format: string, args: ..any, flush:bool = true) {
     }
 }
 
+// Non-fatal error logging for semantic analysis
+printf_nofatal :: proc(type: LogType, format: string, args: ..any, flush:bool = true) {
+    print_type(type, flush)
+    fmt.fprintf(os.stdout, format, ..args, flush=flush, newline=true)
+}
+
 tok_printf :: proc(type: LogType, token: Token, format: string, args: ..any, flush:bool = true) {
     print_type(type, flush)
     fmt.fprintf(
@@ -62,4 +68,17 @@ loc_printf :: proc(type: LogType, location: Location, format: string, args: ..an
     if type == .ERROR {
         os.exit(1)
     }
+}
+
+// Non-fatal location-based error logging for semantic analysis
+loc_printf_nofatal :: proc(type: LogType, location: Location, format: string, args: ..any, flush:bool = true) {
+    print_type(type, flush)
+    fmt.fprintf(
+        os.stdout,
+        "\e[1;90m(%d:%d)\e[0m ",
+        location.line,
+        location.col,
+        flush=flush
+    )
+    fmt.fprintf(os.stdout, format, ..args, flush=flush, newline=true)
 }

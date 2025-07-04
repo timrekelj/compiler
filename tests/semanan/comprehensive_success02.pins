@@ -1,0 +1,31 @@
+var a = 3
+var c = 10
+fun f(b) = (a * 4 + 3)^ = (a + 3)^, 1
+fun g(b) = a^ = 4, 1
+fun h(b) = a = b, 1
+fun i(b) = a = 3, 1
+fun j(b) = (a + c)^ = 3, 1
+fun k(b) = a^ = b + (a + 10)^,1
+fun l(b) = 4^ = c+b, 1
+fun m(b) = if a == 5 then c^ = 3 end, 1
+fun n(b) = if a != 3 then c = 4 else a = c^ end,1
+fun o(b) = while 3 == 1 do a = 5, b^ = 3, c = 4^ end, 1
+fun p(b) = while a == 3 do b = 5 + a, (b + 4)^ = 3, c^ = 4 end, 1
+
+fun r(b) = let
+    var a = 3
+    fun c(b) = a = 5, b^ = 4, (a+3)^ = (5 + 2)^,1
+    in
+        b = 4, a^ = 3, (3+4)^ = 6
+    end,1
+
+
+#vrzejo napako:
+#fun s(b) = 4 = a, 1
+#fun s1(b) = 4 + 3 = 3, 1
+#fun q(b) = if a == 5 then 2 = 3 end, 1
+#fun q1(b) = if a == 5 then a = 3 else 3 = a end, 1
+#fun t(b) = while 3 == 1 do 5 = a, b^ = 3, c = 4^ end, 1
+#fun t1(b) = while 3 == 1 do a = 5, 3 = b^, c = 4^ end, 1
+#fun u(b) = let var a = 3 fun c(b) = 5 = 5, b^ = 4, (a+3)^ = (5 + 2)^, 1 in b = 4, a^ = 3, (3+4)^ = 6 end,1
+#fun u1(b) = let var a = 3 fun c(b) = a = 5, b^ = 4, (a+3)^ = (5 + 2)^, 1 in 3 = 4, a^ = 3, (3+4)^ = 6 end,1

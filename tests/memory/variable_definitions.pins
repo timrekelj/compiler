@@ -1,0 +1,12 @@
+var a = 12
+var b = 3 * 12
+var t = 3 * 12, 11, 5 * 1
+var c = 'a'
+var d = 123 * 'a'
+var e = '\n'
+var f = 2 * '\n'
+var g = "hello world"
+var h = "hello world", "hello", 3 * "world"
+var l = '\2A'
+var i = 3 * '\FF'
+var s = 3 * "hello world\00"

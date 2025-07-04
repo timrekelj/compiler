@@ -1,0 +1,232 @@
+This is PINS'24 compiler (abstract syntax):
+Program:
+  FunDef foo [1.1:1.9]
+    Pars:
+    Stmts:
+  FunDef foo [4.1:4.27]
+    Pars:
+      ParDef a [4.9:4.9]
+      ParDef b [4.12:4.12]
+      ParDef c [4.15:4.15]
+    Stmts:
+      ExprStmt [4.20:4.27]
+        AtomExpr 12341234 [4.20:4.27]
+  FunDef foo [5.1:5.35]
+    Pars:
+      ParDef a [5.9:5.9]
+    Stmts:
+      IfStmt [5.14:5.35]
+        BinExpr GTH [5.18:5.22]
+          NameExpr a [5.18:5.18]
+          NameExpr b [5.22:5.22]
+        IfThenStmts:
+          ExprStmt [5.30:5.31]
+            AtomExpr 12 [5.30:5.31]
+        IfElseStmts:
+  FunDef foo [6.1:31.7]
+    Pars:
+    Stmts:
+      LetStmt [7.5:9.7]
+        LetDefs:
+          VarDef bar [7.9:7.19]
+            Inits:
+              Init 1* [7.19:7.19]
+                AtomExpr 1 [7.19:7.19]
+        LetStmts:
+          ExprStmt [8.9:8.16]
+            BinExpr NEQ [8.9:8.16]
+              NameExpr bar [8.9:8.11]
+              AtomExpr 2 [8.16:8.16]
+      LetStmt [10.5:14.7]
+        LetDefs:
+          FunDef a [10.9:10.16]
+            Pars:
+              ParDef b [10.15:10.15]
+            Stmts:
+        LetStmts:
+          LetStmt [11.9:13.11]
+            LetDefs:
+              FunDef b [11.13:11.20]
+                Pars:
+                  ParDef a [11.19:11.19]
+                Stmts:
+            LetStmts:
+              AssignStmt [12.13:12.33]
+                BinExpr MUL [12.13:12.17]
+                  NameExpr a [12.13:12.13]
+                  NameExpr b [12.17:12.17]
+                NameExpr spremenljivka [12.21:12.33]
+      LetStmt [15.5:15.42]
+        LetDefs:
+          FunDef a [15.9:15.15]
+            Pars:
+            Stmts:
+          FunDef b [15.17:15.23]
+            Pars:
+            Stmts:
+          FunDef c [15.25:15.31]
+            Pars:
+            Stmts:
+        LetStmts:
+          ExprStmt [15.36:15.38]
+            AtomExpr 'a' [15.36:15.38]
+      IfStmt [16.5:31.7]
+        BinExpr GTH [16.9:16.13]
+          NameExpr a [16.9:16.9]
+          NameExpr b [16.13:16.13]
+        IfThenStmts:
+          ExprStmt [16.21:16.22]
+            AtomExpr 12 [16.21:16.22]
+          WhileStmt [17.9:21.11]
+            BinExpr EQU [17.15:17.23]
+              NameExpr bar [17.15:17.17]
+              AtomExpr 12 [17.22:17.23]
+            WhileStmts:
+              AssignStmt [18.13:18.24]
+                AtomExpr "string" [18.13:18.20]
+                UnExpr VALUEAT [18.22:18.24]
+                  AtomExpr 42 [18.22:18.23]
+              ExprStmt [19.13:19.24]
+                CallExpr foo [19.13:19.24]
+                  Args:
+                    NameExpr a [19.17:19.17]
+                    NameExpr c [19.20:19.20]
+                    NameExpr b [19.23:19.23]
+              ExprStmt [20.13:20.18]
+                UnExpr VALUEAT [20.13:20.18]
+                  CallExpr foo [20.13:20.17]
+                    Args:
+        IfElseStmts:
+          ExprStmt [24.10:24.19]
+            BinExpr LTH [24.10:24.19]
+              BinExpr LTH [24.10:24.14]
+                NameExpr a [24.10:24.10]
+                NameExpr b [24.14:24.14]
+              NameExpr c [24.19:24.19]
+          ExprStmt [25.9:25.21]
+            BinExpr ADD [25.9:25.21]
+              BinExpr ADD [25.9:25.17]
+                BinExpr ADD [25.9:25.13]
+                  AtomExpr 1 [25.9:25.9]
+                  AtomExpr 2 [25.13:25.13]
+                AtomExpr 3 [25.17:25.17]
+              AtomExpr 4 [25.21:25.21]
+          ExprStmt [26.13:26.41]
+            BinExpr ADD [26.13:26.41]
+              BinExpr ADD [26.13:26.31]
+                BinExpr ADD [26.13:26.25]
+                  BinExpr ADD [26.13:26.19]
+                    UnExpr NOT [26.13:26.14]
+                      AtomExpr 1 [26.14:26.14]
+                    UnExpr ADD [26.18:26.19]
+                      AtomExpr 2 [26.19:26.19]
+                  UnExpr SUB [26.24:26.25]
+                    AtomExpr 3 [26.25:26.25]
+                UnExpr MEMADDR [26.30:26.31]
+                  AtomExpr 4 [26.31:26.31]
+              BinExpr MUL [26.37:26.41]
+                AtomExpr 5 [26.37:26.37]
+                AtomExpr 6 [26.41:26.41]
+          ExprStmt [27.9:27.17]
+            BinExpr MUL [27.9:27.17]
+              BinExpr MOD [27.9:27.13]
+                AtomExpr 1 [27.9:27.9]
+                AtomExpr 2 [27.13:27.13]
+              AtomExpr 5 [27.17:27.17]
+          ExprStmt [28.9:28.20]
+            UnExpr NOT [28.9:28.20]
+              UnExpr VALUEAT [28.11:28.20]
+                BinExpr DIV [28.11:28.18]
+                  AtomExpr 1234 [28.11:28.14]
+                  AtomExpr 3 [28.18:28.18]
+          ExprStmt [29.10:29.73]
+            BinExpr OR [29.10:29.73]
+              BinExpr OR [29.10:29.62]
+                BinExpr OR [29.10:29.39]
+                  BinExpr LEQ [29.10:29.15]
+                    NameExpr a [29.10:29.10]
+                    NameExpr b [29.15:29.15]
+                  BinExpr AND [29.22:29.39]
+                    BinExpr EQU [29.22:29.27]
+                      NameExpr a [29.22:29.22]
+                      NameExpr b [29.27:29.27]
+                    BinExpr NEQ [29.34:29.39]
+                      NameExpr a [29.34:29.34]
+                      NameExpr b [29.39:29.39]
+                BinExpr AND [29.46:29.62]
+                  BinExpr GEQ [29.46:29.51]
+                    NameExpr a [29.46:29.46]
+                    NameExpr b [29.51:29.51]
+                  BinExpr GTH [29.58:29.62]
+                    NameExpr a [29.58:29.58]
+                    NameExpr b [29.62:29.62]
+              BinExpr LTH [29.69:29.73]
+                NameExpr a [29.69:29.69]
+                NameExpr b [29.73:29.73]
+          ExprStmt [30.9:30.14]
+            UnExpr MEMADDR [30.9:30.14]
+              UnExpr VALUEAT [30.10:30.14]
+                AtomExpr "ja" [30.10:30.13]
+  VarDef string [33.1:33.26]
+    Inits:
+      Init 1* [33.14:33.26]
+        AtomExpr "test string" [33.14:33.26]
+  VarDef char [34.1:34.15]
+    Inits:
+      Init 1* [34.12:34.15]
+        AtomExpr '\n' [34.12:34.15]
+  VarDef int [35.1:35.14]
+    Inits:
+      Init 1* [35.11:35.14]
+        AtomExpr 1234 [35.11:35.14]
+  VarDef stringstringstring [39.1:39.63]
+    Inits:
+      Init 1* [39.26:39.38]
+        AtomExpr "test string" [39.26:39.38]
+      Init 1* [39.41:39.53]
+        AtomExpr "string test" [39.41:39.53]
+      Init 1* [39.56:39.63]
+        AtomExpr "string" [39.56:39.63]
+  VarDef charcharcharchar [40.1:40.41]
+    Inits:
+      Init 1* [40.24:40.26]
+        AtomExpr 'c' [40.24:40.26]
+      Init 1* [40.29:40.31]
+        AtomExpr 'h' [40.29:40.31]
+      Init 1* [40.34:40.36]
+        AtomExpr 'a' [40.34:40.36]
+      Init 1* [40.39:40.41]
+        AtomExpr 'r' [40.39:40.41]
+  VarDef intintint [41.1:41.29]
+    Inits:
+      Init 1* [41.17:41.19]
+        AtomExpr 123 [41.17:41.19]
+      Init 1* [41.22:41.24]
+        AtomExpr 456 [41.22:41.24]
+      Init 1* [41.27:41.29]
+        AtomExpr 789 [41.27:41.29]
+  VarDef string12 [43.1:43.28]
+    Inits:
+      Init 12* [43.16:43.28]
+        AtomExpr "string" [43.21:43.28]
+  VarDef char12 [44.1:44.23]
+    Inits:
+      Init 12* [44.14:44.23]
+        AtomExpr '\A3' [44.19:44.23]
+  VarDef int12 [45.1:45.27]
+    Inits:
+      Init 12* [45.13:45.27]
+        AtomExpr 0123456789 [45.18:45.27]
+  VarDef string12char12int12 [46.1:46.58]
+    Inits:
+      Init 12* [46.27:46.39]
+        AtomExpr "string" [46.32:46.39]
+      Init 12* [46.42:46.49]
+        AtomExpr 'c' [46.47:46.49]
+      Init 12* [46.52:46.58]
+        AtomExpr 42 [46.57:46.58]
+  VarDef a [47.1:47.7]
+    Inits:
+      Init 1* [0.0:0.0]
+        AtomExpr 0 [0.0:0.0]
+:-) Done.

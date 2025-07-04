@@ -1,0 +1,2 @@
+# napaka: let nima statementa
+fun a() = let var b = 42 in end

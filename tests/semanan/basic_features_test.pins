@@ -1,0 +1,22 @@
+var global = 10
+
+fun simple(x) = x + 1
+
+fun test_basic() = 
+    let
+        var y = 5
+    in
+        y
+    end
+
+fun test_params(a, b) = a + b
+
+fun test_call() = simple(global)
+
+fun test_assignment() =
+    let
+        var temp = 0
+    in
+        temp = 42,
+        temp
+    end

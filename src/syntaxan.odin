@@ -17,6 +17,7 @@ AST_Node :: union {
 
 AST_Program :: struct {
     definitions: [dynamic]AST_Definition,
+    statements: [dynamic]AST_Statement,
 }
 
 AST_Definition :: union {
@@ -105,6 +106,7 @@ AST_Initializer :: union {
     AST_IntInit,
     AST_CharInit,
     AST_StringInit,
+    AST_ExprInit,
 }
 
 AST_IntInit :: struct {
@@ -119,6 +121,10 @@ AST_CharInit :: struct {
 
 AST_StringInit :: struct {
     value: string,
+}
+
+AST_ExprInit :: struct {
+    expression: ^AST_Expression,
 }
 
 // Parser state
@@ -149,13 +155,25 @@ parse :: proc(tokens: [dynamic]Token) -> ^AST_Program {
 parse_program :: proc(parser: ^Parser) -> ^AST_Program {
     program := new(AST_Program)
     program.definitions = make([dynamic]AST_Definition)
+    program.statements = make([dynamic]AST_Statement)
     
     for !is_at_end(parser) {
+        // Try to parse a definition first
         if def, ok := parse_definition(parser); ok {
             append(&program.definitions, def)
+        } else if stmt, ok := parse_statement(parser); ok {
+            // If definition parsing fails, try to parse a statement
+            append(&program.statements, stmt)
         } else {
+            // If both fail, we have an unexpected token
+            error_at_current(parser, "Unexpected token")
             break
         }
+    }
+    
+    // Check for empty program
+    if len(program.definitions) == 0 && len(program.statements) == 0 {
+        error_at_current(parser, "Empty program not allowed")
     }
     
     return program
@@ -171,7 +189,6 @@ parse_definition :: proc(parser: ^Parser) -> (AST_Definition, bool) {
     case .FUN:
         return parse_fun_definition(parser)
     case:
-        error_at_current(parser, "Expected variable or function definition")
         return {}, false
     }
 }
@@ -186,6 +203,12 @@ parse_var_definition :: proc(parser: ^Parser) -> (AST_Definition, bool) {
     consume(parser, .ASSIGN, "Expected '='")
     
     initializers := parse_initializers(parser)
+    
+    // Check if we have an equals sign but no initializers
+    if len(initializers) == 0 {
+        error_at_current(parser, "Expected initializer after '='")
+        return {}, false
+    }
     
     var_def := AST_VarDef{
         name = name,
@@ -418,7 +441,7 @@ parse_and_expression :: proc(parser: ^Parser) -> AST_Expression {
 parse_comp_expression :: proc(parser: ^Parser) -> AST_Expression {
     expr := parse_add_expression(parser)
     
-    for match(parser, .EQ, .NEQ, .LT, .GT, .LEQ, .GEQ) {
+    if match(parser, .EQ, .NEQ, .LT, .GT, .LEQ, .GEQ) {
         operator := previous(parser)
         right := parse_add_expression(parser)
         
@@ -568,9 +591,24 @@ parse_primary_expression :: proc(parser: ^Parser) -> AST_Expression {
         
     case .LBRACKET:
         advance(parser) // consume '('
+        
+        // Handle empty parentheses as unit expression
+        if check(parser, .RBRACKET) {
+            advance(parser) // consume ')'
+            unit_literal := AST_Literal{
+                value = "()",
+                type = .LBRACKET, // Use LBRACKET as marker for unit type
+            }
+            return unit_literal
+        }
+        
         expr := parse_expression(parser)
         consume(parser, .RBRACKET, "Expected ')' after expression")
         return expr
+        
+    case .EOF:
+        error_at_current(parser, "Unexpected end of file")
+        return AST_Literal{} // Return empty literal as fallback
         
     case:
         error_at_current(parser, "Expected expression")
@@ -622,6 +660,19 @@ parse_initializers :: proc(parser: ^Parser) -> [dynamic]AST_Initializer {
 
 // Grammar: initializer -> INTCONST initializer2 | CHARCONST | STRINGCONST
 parse_initializer :: proc(parser: ^Parser) -> (AST_Initializer, bool) {
+    // Try to parse as expression first
+    current_pos := parser.current
+    expr := parse_expression(parser)
+    
+    // Check if we successfully parsed an expression (advanced the parser position)
+    if parser.current > current_pos {
+        expr_ptr := new(AST_Expression)
+        expr_ptr^ = expr
+        expr_init := AST_ExprInit{expression = expr_ptr}
+        return expr_init, true
+    }
+    
+    // If expression parsing didn't advance, try literal parsing
     #partial switch peek(parser).token_type {
     case .NUMBER:
         token := advance(parser)
@@ -661,8 +712,8 @@ is_at_end :: proc(parser: ^Parser) -> bool {
 
 peek :: proc(parser: ^Parser) -> Token {
     if is_at_end(parser) {
-        // Return a dummy END token
-        return Token{token_type = TokenType(0), value = "", start_loc = Location{}, end_loc = Location{}}
+        // Return a dummy EOF token
+        return Token{token_type = .EOF, value = "", start_loc = Location{}, end_loc = Location{}}
     }
     return parser.tokens[parser.current]
 }
@@ -728,6 +779,12 @@ print_ast :: proc(program: ^AST_Program) {
             print_definition(def, 4)
         }
     }
+    
+    printf(.INFO, "  Total statements: %d", len(program.statements))
+    for stmt, i in program.statements {
+        printf(.INFO, "  Statement %d:", i)
+        print_statement(stmt, 4)
+    }
 }
 
 print_definition :: proc(def: AST_Definition, indent: int) {
@@ -776,6 +833,10 @@ print_initializer :: proc(init: AST_Initializer, indent: int) {
         
     case AST_StringInit:
         printf(.INFO, "%sString: %s", spaces, i.value)
+        
+    case AST_ExprInit:
+        printf(.INFO, "%sExpression:", spaces)
+        print_expression(i.expression^, indent + 2)
     }
 }
 

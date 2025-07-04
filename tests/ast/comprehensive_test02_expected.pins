@@ -1,0 +1,103 @@
+This is PINS'24 compiler (abstract syntax):
+Program:
+  FunDef funkcija [1.1:1.37]
+    Pars:
+      ParDef p1 [1.14:1.15]
+    Stmts:
+      ExprStmt [1.22:1.37]
+        BinExpr ADD [1.22:1.37]
+          BinExpr MUL [1.22:1.30]
+            BinExpr MUL [1.22:1.26]
+              AtomExpr 2 [1.22:1.22]
+              AtomExpr 4 [1.26:1.26]
+            AtomExpr 2 [1.30:1.30]
+          NameExpr p1 [1.36:1.37]
+  FunDef test [2.1:2.65]
+    Pars:
+      ParDef a [2.10:2.10]
+      ParDef b [2.13:2.13]
+      ParDef c [2.16:2.16]
+      ParDef d [2.19:2.19]
+    Stmts:
+      IfStmt [2.24:2.65]
+        BinExpr EQU [2.27:2.32]
+          NameExpr a [2.27:2.27]
+          NameExpr b [2.32:2.32]
+        IfThenStmts:
+          AssignStmt [2.39:2.43]
+            NameExpr a [2.39:2.39]
+            AtomExpr 4 [2.43:2.43]
+          AssignStmt [2.46:2.50]
+            NameExpr b [2.46:2.46]
+            AtomExpr 3 [2.50:2.50]
+        IfElseStmts:
+          AssignStmt [2.57:2.61]
+            NameExpr a [2.57:2.57]
+            AtomExpr 3 [2.61:2.61]
+  FunDef ponovno [3.1:3.21]
+    Pars:
+      ParDef e [3.13:3.13]
+    Stmts:
+      ExprStmt [3.18:3.21]
+        NameExpr test [3.18:3.21]
+  VarDef testniA [5.1:5.19]
+    Inits:
+      Init 2* [5.15:5.19]
+        AtomExpr 4 [5.19:5.19]
+  FunDef primer [7.1:7.68]
+    Pars:
+      ParDef test [7.14:7.17]
+    Stmts:
+      IfStmt [7.23:7.68]
+        BinExpr EQU [7.26:7.31]
+          AtomExpr 2 [7.26:7.26]
+          AtomExpr 3 [7.31:7.31]
+        IfThenStmts:
+          AssignStmt [7.38:7.47]
+            NameExpr A [7.38:7.38]
+            AtomExpr "weeeee" [7.40:7.47]
+        IfElseStmts:
+          AssignStmt [7.54:7.64]
+            NameExpr A [7.54:7.54]
+            AtomExpr "noooooo" [7.56:7.64]
+  FunDef b [8.1:8.49]
+    Pars:
+    Stmts:
+      IfStmt [8.11:8.49]
+        BinExpr EQU [8.14:8.17]
+          NameExpr n [8.14:8.14]
+          AtomExpr 1 [8.17:8.17]
+        IfThenStmts:
+          AssignStmt [8.24:8.26]
+            NameExpr f [8.24:8.24]
+            AtomExpr 1 [8.26:8.26]
+        IfElseStmts:
+          AssignStmt [8.33:8.45]
+            NameExpr f [8.33:8.33]
+            BinExpr MUL [8.35:8.45]
+              NameExpr n [8.35:8.35]
+              CallExpr fact [8.37:8.45]
+                Args:
+                  BinExpr SUB [8.42:8.44]
+                    NameExpr n [8.42:8.42]
+                    AtomExpr 1 [8.44:8.44]
+  FunDef foo [10.1:10.45]
+    Pars:
+    Stmts:
+      ExprStmt [10.17:10.45]
+        BinExpr ADD [10.17:10.45]
+          BinExpr ADD [10.17:10.35]
+            BinExpr ADD [10.17:10.29]
+              BinExpr ADD [10.17:10.23]
+                UnExpr NOT [10.17:10.18]
+                  AtomExpr 1 [10.18:10.18]
+                UnExpr ADD [10.22:10.23]
+                  AtomExpr 2 [10.23:10.23]
+              UnExpr SUB [10.28:10.29]
+                AtomExpr 3 [10.29:10.29]
+            UnExpr MEMADDR [10.34:10.35]
+              AtomExpr 4 [10.35:10.35]
+          BinExpr MUL [10.41:10.45]
+            AtomExpr 5 [10.41:10.41]
+            AtomExpr 6 [10.45:10.45]
+:-) Done.

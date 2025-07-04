@@ -1,0 +1,2 @@
+# napaka: let nima statement definitiona
+fun a() = let in end

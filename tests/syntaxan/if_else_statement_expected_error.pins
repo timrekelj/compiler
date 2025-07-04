@@ -1,0 +1,2 @@
+# napaka: else nima statementa
+fun a() = if a then b else end

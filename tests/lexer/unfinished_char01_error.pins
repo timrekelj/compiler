@@ -1,0 +1,3 @@
+# napaka: znak se ne konca (sploh ne vsebuje znaka)
+znak = '
+znak = 'a'

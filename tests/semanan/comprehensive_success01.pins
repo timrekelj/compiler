@@ -1,0 +1,9 @@
+fun main() =
+	let
+		var n = 0
+		var s = "ABC\00"
+		fun inc(m) = m+1
+	in
+		n = "CDE\00",
+		inc(n+3)
+	end

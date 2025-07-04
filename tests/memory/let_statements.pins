@@ -1,0 +1,23 @@
+fun bar()=
+    let
+		var a=0
+		var b=0
+		fun c(d, e, f)
+		var g="hello"
+	in
+        let
+            var h='\n'
+            fun i(j) =
+                let
+                    var k=0
+                in
+                    k
+                end
+        in
+            let
+                var k=0
+            in
+                k
+            end
+        end
+	end

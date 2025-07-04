@@ -1,0 +1,47 @@
+fun foo()
+
+
+fun foo(a, b, c) = 12341234
+fun foo(a) = if (a > b) then 12 end
+fun foo() =
+    let var bar = 1 in
+        bar != 2
+    end,
+    let fun a(b) in
+        let fun b(a) in
+            a * b = spremenljivka
+        end
+    end,
+    let fun a() fun b() fun c() in 'a' end,
+    if (a > b) then 12,
+        while bar == 12 do
+            "string"=42^,
+            foo(a, c ,b),
+            foo()^
+        end
+    else
+        # aaaaaaaa
+        (a < b) < c,
+        1 + 2 + 3 + 4,
+        ((((!1 + +2) + -3) + ^4) + (5 * 6)),
+        1 % 2 * 5,
+        !(1234 / 3)^,
+        (a <= b) || (a == b) && (a != b) || (a >= b) && (a > b) || (a < b),
+        ^"ja"^
+    end
+
+var string = "test string"
+var char = '\n'
+var int = 1234
+
+# komentar za salo
+# komentar za salo
+var stringstringstring = "test string", "string test", "string"
+var charcharcharchar = 'c', 'h', 'a', 'r'
+var intintint = 123, 456, 789
+
+var string12 = 12 * "string"
+var char12 = 12 * '\A3'
+var int12 = 12 * 0123456789
+var string12char12int12 = 12 * "string", 12 * 'c', 12 * 42
+var a =

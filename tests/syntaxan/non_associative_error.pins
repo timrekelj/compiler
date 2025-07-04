@@ -1,0 +1,2 @@
+# napaka: primerjalni operatorji niso asociativni
+var i = a < b < c

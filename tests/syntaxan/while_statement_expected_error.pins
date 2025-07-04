@@ -1,0 +1,2 @@
+# napaka: while nima statementa
+fun a() = while a do end

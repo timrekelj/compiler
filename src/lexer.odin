@@ -7,7 +7,8 @@ import "core:strings"
 
 File :: struct {
     fp: os.Handle,
-    curr_loc: Location
+    curr_loc: Location,
+    last_was_cr: bool
 }
 
 @(private="file")
@@ -23,7 +24,18 @@ nextc :: proc(file: ^File) -> (c: u8, err: Error) {
 
     c = buf[0]
 
-    if c == '\r' { c = '\n' }
+    // Handle Windows line endings (\r\n) properly
+    if c == '\r' {
+        c = '\n'
+        file.last_was_cr = true
+    } else if c == '\n' && file.last_was_cr {
+        // This is the \n part of \r\n, skip line increment
+        file.last_was_cr = false
+        file.curr_loc.col += 1
+        return
+    } else {
+        file.last_was_cr = false
+    }
 
     if c == '\n' {
         file.curr_loc.col = 0
@@ -117,11 +129,11 @@ read_char :: proc(file: ^File) -> (token: Token, err: Error) {
 
     if curr_c == '\\' {
         curr_c = nextc(file) or_return // escaped character
-        if curr_c >= '0' && curr_c <= '9' {
+        if (curr_c >= '0' && curr_c <= '9') || (curr_c >= 'A' && curr_c <= 'F') {
             strings.write_byte(&value_builder, curr_c)
             curr_c = nextc(file) or_return // second escaped character if it is hex
 
-            if curr_c < '0' || curr_c > '9' {
+            if !((curr_c >= '0' && curr_c <= '9') || (curr_c >= 'A' && curr_c <= 'F')) {
                 err = Lexer_Error.Escaped_Character
                 return
             }
@@ -169,6 +181,35 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
             return
         }
 
+        if curr_c == '\\' {
+            strings.write_byte(&value_builder, curr_c)
+            curr_c = nextc(file) or_return // escaped character
+            
+            if curr_c == 0 {
+                err = Lexer_Error.String
+                return
+            }
+            
+            // Handle hex escape sequences and other escape characters
+            if (curr_c >= '0' && curr_c <= '9') || (curr_c >= 'A' && curr_c <= 'F') {
+                strings.write_byte(&value_builder, curr_c)
+                curr_c = nextc(file) or_return // second hex character
+                
+                if curr_c == 0 {
+                    err = Lexer_Error.String
+                    return
+                }
+                
+                if !((curr_c >= '0' && curr_c <= '9') || (curr_c >= 'A' && curr_c <= 'F')) {
+                    err = Lexer_Error.Escaped_Character
+                    return
+                }
+            } else if curr_c != '"' && curr_c != '\\' && curr_c != 't' && curr_c != 'n' {
+                err = Lexer_Error.Escaped_Character
+                return
+            }
+        }
+
         strings.write_byte(&value_builder, curr_c)
         curr_c = nextc(file) or_return
     }
@@ -193,7 +234,8 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
 
     file := File{
         fp = fp,
-        curr_loc = { line = 1, col = 0 }
+        curr_loc = { line = 1, col = 0 },
+        last_was_cr = false
     }
 
     curr_c: u8

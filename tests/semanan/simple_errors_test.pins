@@ -1,0 +1,48 @@
+var global = 10
+
+fun test_function(x) = x + 1
+
+fun test_var_as_function() =
+    let
+        var result = 0
+    in
+        result = global(42)
+    end
+
+fun test_function_as_var() =
+    let
+        var x = 0
+    in
+        x = test_function + 5
+    end
+
+fun test_wrong_arg_count() =
+    let
+        var result = 0
+    in
+        result = test_function(1, 2, 3)
+    end
+
+fun test_invalid_lvalue() =
+    let
+        var x = 0
+    in
+        42 = x
+    end
+
+fun test_redefinition() =
+    let
+        var x = 1
+        var x = 2
+    in
+        x
+    end
+
+fun test_param_redefinition(a, a) = a + 1
+
+fun no_return_function() =
+    let
+        var x = 0
+    in
+        x = 42
+    end
