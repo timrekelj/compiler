@@ -177,6 +177,57 @@ semantic_analyze :: proc(ast: ^AST_Program) -> ^AttrAST {
     return attr_ast
 }
 
+// Check if a function name is a built-in function
+is_builtin_function :: proc(name: string) -> bool {
+    switch name {
+    case "exit", "getint", "putint", "getstr", "putstr", "new", "del":
+        return true
+    case:
+        return false
+    }
+}
+
+// Validate built-in function calls
+validate_builtin_function :: proc(call: AST_FunctionCall, error_tracker: ^ErrorTracker) {
+    switch call.function.name {
+    case "exit":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "exit() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "getint":
+        if len(call.arguments) != 0 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "getint() expects no arguments, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "putint":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "putint() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "getstr":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "getstr() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "putstr":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "putstr() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "new":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "new() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    case "del":
+        if len(call.arguments) != 1 {
+            loc_printf_nofatal(.ERROR, Location{0, 0}, "del() expects exactly 1 argument, got %d", len(call.arguments))
+            error_tracker.error_count += 1
+        }
+    }
+}
+
 // Name resolution implementation
 resolve_names :: proc(resolver: ^NameResolver, program: ^AST_Program, error_tracker: ^ErrorTracker) {
     // Two-pass resolution: first pass for definitions, second for everything else
@@ -304,12 +355,18 @@ resolve_names_expression :: proc(resolver: ^NameResolver, expr: ^AST_Expression,
     case AST_UnaryOp:
         resolve_names_expression(resolver, e.operand, error_tracker)
     case AST_FunctionCall:
-        def, def_type := find_def(&resolver.symbol_table, e.function.name)
-        if def == nil {
-            loc_printf_nofatal(.ERROR, Location{0, 0}, "Undefined name '%s'", e.function.name)
-            error_tracker.error_count += 1
+        // Check for built-in functions first
+        if is_builtin_function(e.function.name) {
+            // Mark as a built-in function by setting name_defs to a special marker
+            resolver.attr_ast.attrs.name_defs[rawptr(expr)] = rawptr(uintptr(1)) // Non-null marker for built-ins
         } else {
-            resolver.attr_ast.attrs.name_defs[rawptr(expr)] = def
+            def, def_type := find_def(&resolver.symbol_table, e.function.name)
+            if def == nil {
+                loc_printf_nofatal(.ERROR, Location{0, 0}, "Undefined name '%s'", e.function.name)
+                error_tracker.error_count += 1
+            } else {
+                resolver.attr_ast.attrs.name_defs[rawptr(expr)] = def
+            }
         }
         
         for arg in e.arguments {
@@ -429,17 +486,23 @@ resolve_types_expression :: proc(resolver: ^TypeResolver, expr: ^AST_Expression,
         // Check if it's actually a function - look up by name
         def := resolver.attr_ast.attrs.name_defs[rawptr(expr)]
         if def != nil {
-            // Check if definition is a function
-            if fun_def := cast(^AST_FunDef)def; fun_def != nil {
-                // Check argument count
-                if len(fun_def.parameters) != len(e.arguments) {
-                    loc_printf_nofatal(.ERROR, Location{0, 0}, "Illegal number of arguments in a call of function '%s'", e.function.name)
+            // Check if it's a built-in function
+            if is_builtin_function(e.function.name) {
+                // Built-in functions have special handling
+                validate_builtin_function(e, error_tracker)
+            } else {
+                // Check if definition is a function
+                if fun_def := cast(^AST_FunDef)def; fun_def != nil {
+                    // Check argument count
+                    if len(fun_def.parameters) != len(e.arguments) {
+                        loc_printf_nofatal(.ERROR, Location{0, 0}, "Illegal number of arguments in a call of function '%s'", e.function.name)
+                        error_tracker.error_count += 1
+                    }
+                } else {
+                    // Not a function definition - must be variable or parameter
+                    loc_printf_nofatal(.ERROR, Location{0, 0}, "'%s' is not a function", e.function.name)
                     error_tracker.error_count += 1
                 }
-            } else {
-                // Not a function definition - must be variable or parameter
-                loc_printf_nofatal(.ERROR, Location{0, 0}, "'%s' is not a function", e.function.name)
-                error_tracker.error_count += 1
             }
         }
         

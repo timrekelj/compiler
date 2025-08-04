@@ -182,7 +182,6 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
         }
 
         if curr_c == '\\' {
-            strings.write_byte(&value_builder, curr_c)
             curr_c = nextc(file) or_return // escaped character
             
             if curr_c == 0 {
@@ -190,9 +189,19 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
                 return
             }
             
-            // Handle hex escape sequences and other escape characters
-            if (curr_c >= '0' && curr_c <= '9') || (curr_c >= 'A' && curr_c <= 'F') {
-                strings.write_byte(&value_builder, curr_c)
+            // Handle escape sequences
+            switch curr_c {
+            case 'n':
+                strings.write_byte(&value_builder, '\n')
+            case 't':
+                strings.write_byte(&value_builder, '\t')
+            case '\\':
+                strings.write_byte(&value_builder, '\\')
+            case '"':
+                strings.write_byte(&value_builder, '"')
+            case '0'..='9', 'A'..='F':
+                // Handle hex escape sequences \XX
+                first_digit := curr_c
                 curr_c = nextc(file) or_return // second hex character
                 
                 if curr_c == 0 {
@@ -204,13 +213,32 @@ read_string :: proc(file: ^File) -> (token: Token, err: Error) {
                     err = Lexer_Error.Escaped_Character
                     return
                 }
-            } else if curr_c != '"' && curr_c != '\\' && curr_c != 't' && curr_c != 'n' {
+                
+                // Convert hex digits to byte value
+                first_val: u8
+                second_val: u8
+                
+                if first_digit >= '0' && first_digit <= '9' {
+                    first_val = u8(first_digit - '0')
+                } else {
+                    first_val = u8(first_digit - 'A' + 10)
+                }
+                
+                if curr_c >= '0' && curr_c <= '9' {
+                    second_val = u8(curr_c - '0')
+                } else {
+                    second_val = u8(curr_c - 'A' + 10)
+                }
+                
+                byte_val := first_val * 16 + second_val
+                strings.write_byte(&value_builder, byte_val)
+            case:
                 err = Lexer_Error.Escaped_Character
                 return
             }
+        } else {
+            strings.write_byte(&value_builder, curr_c)
         }
-
-        strings.write_byte(&value_builder, curr_c)
         curr_c = nextc(file) or_return
     }
 
@@ -528,33 +556,19 @@ lexer :: proc(filename: string) -> (tokens: [dynamic]Token, err: Error) {
                     end_loc=file.curr_loc,
                 })
             case '+':
-                next_c := peek(file) or_return
-                if next_c >= '0' && next_c <= '9' {
-                    num := read_number(curr_c, &file) or_return
-                    append(&tokens, num)
-                    continue
-                } else {
-                    append(&tokens, Token {
-                        token_type=.PLUS,
-                        value="+",
-                        start_loc=file.curr_loc,
-                        end_loc=file.curr_loc,
-                    })
-                }
+                append(&tokens, Token {
+                    token_type=.PLUS,
+                    value="+",
+                    start_loc=file.curr_loc,
+                    end_loc=file.curr_loc,
+                })
             case '-':
-                next_c := peek(file) or_return
-                if next_c >= '0' && next_c <= '9' {
-                    num := read_number(curr_c, &file) or_return
-                    append(&tokens, num)
-                    continue
-                } else {
-                    append(&tokens, Token {
-                        token_type=.MINUS,
-                        value="-",
-                        start_loc=file.curr_loc,
-                        end_loc=file.curr_loc,
-                    })
-                }
+                append(&tokens, Token {
+                    token_type=.MINUS,
+                    value="-",
+                    start_loc=file.curr_loc,
+                    end_loc=file.curr_loc,
+                })
             case '*':
                 append(&tokens, Token {
                     token_type=.ASTERISK,

@@ -134,7 +134,6 @@ Parser :: struct {
     had_error: bool,
 }
 
-// Main parsing function
 parse :: proc(tokens: [dynamic]Token) -> ^AST_Program {
     parser := Parser{
         tokens = tokens,
@@ -158,14 +157,9 @@ parse_program :: proc(parser: ^Parser) -> ^AST_Program {
     program.statements = make([dynamic]AST_Statement)
     
     for !is_at_end(parser) {
-        // Try to parse a definition first
         if def, ok := parse_definition(parser); ok {
             append(&program.definitions, def)
-        } else if stmt, ok := parse_statement(parser); ok {
-            // If definition parsing fails, try to parse a statement
-            append(&program.statements, stmt)
         } else {
-            // If both fail, we have an unexpected token
             error_at_current(parser, "Unexpected token")
             break
         }
@@ -179,7 +173,8 @@ parse_program :: proc(parser: ^Parser) -> ^AST_Program {
     return program
 }
 
-// Grammar: definition -> fun IDENTIFIER op parameters cp definition2 | var IDENTIFIER eq initializers
+// Grammar: definition -> fun IDENTIFIER op parameters cp definition2
+//          definition -> var IDENTIFIER eq initializers
 parse_definition :: proc(parser: ^Parser) -> (AST_Definition, bool) {
     token := peek(parser)
     
