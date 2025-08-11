@@ -59,7 +59,7 @@ new_scope :: proc(st: ^SymbolTable) {
 // Exit current scope
 old_scope :: proc(st: ^SymbolTable) {
     if st.depth < 0 do return
-    
+
     // Remove all definitions from current scope
     current_scope := &st.scopes[st.depth]
     for name in current_scope {
@@ -71,7 +71,7 @@ old_scope :: proc(st: ^SymbolTable) {
             ordered_remove(defs, 0)
         }
     }
-    
+
     delete(current_scope^)
     ordered_remove(&st.scopes, st.depth)
     st.depth -= 1
@@ -80,7 +80,7 @@ old_scope :: proc(st: ^SymbolTable) {
 // Insert definition into current scope
 insert_def :: proc(st: ^SymbolTable, name: string, def: rawptr, def_type: DefinitionType) -> bool {
     if st.depth < 0 do return false
-    
+
     // Check if already defined in current scope
     if name in st.name_to_defs {
         defs := st.name_to_defs[name]
@@ -88,13 +88,13 @@ insert_def :: proc(st: ^SymbolTable, name: string, def: rawptr, def_type: Defini
             return false // Already defined in current scope
         }
     }
-    
+
     // Add to symbol table
     if name not_in st.name_to_defs {
         st.name_to_defs[name] = make([dynamic]ScopedDef)
     }
     inject_at(&st.name_to_defs[name], 0, ScopedDef{st.depth, def, def_type})
-    
+
     // Add to current scope
     append(&st.scopes[st.depth], name)
     return true
@@ -117,7 +117,7 @@ cleanup_symbol_table :: proc(st: ^SymbolTable) {
         delete(defs)
     }
     delete(st.name_to_defs)
-    
+
     for scope in st.scopes {
         delete(scope)
     }
@@ -130,7 +130,7 @@ NameResolver :: struct {
     symbol_table: SymbolTable,
 }
 
-// Type resolver  
+// Type resolver
 TypeResolver :: struct {
     attr_ast: ^AttrAST,
 }
@@ -151,29 +151,29 @@ semantic_analyze :: proc(ast: ^AST_Program) -> ^AttrAST {
     attr_ast.ast = ast
     attr_ast.attrs.name_defs = make(map[rawptr]rawptr)
     attr_ast.attrs.lval_map = make(map[rawptr]bool)
-    
+
     error_tracker := ErrorTracker{0}
-    
+
     // Phase 1: Name resolution
     name_resolver := NameResolver{attr_ast, {}}
     init_symbol_table(&name_resolver.symbol_table)
     defer cleanup_symbol_table(&name_resolver.symbol_table)
-    
+
     resolve_names(&name_resolver, ast, &error_tracker)
-    
+
     // Phase 2: Type checking
     type_resolver := TypeResolver{attr_ast}
     resolve_types(&type_resolver, ast, &error_tracker)
-    
+
     // Phase 3: L-value resolution
     lval_resolver := LValResolver{attr_ast}
     resolve_lvals(&lval_resolver, ast, &error_tracker)
-    
+
     // If there were errors, exit with error code
     if error_tracker.error_count > 0 {
         printf(.ERROR, "Semantic analysis failed with %d error(s)", error_tracker.error_count)
     }
-    
+
     return attr_ast
 }
 
@@ -231,7 +231,7 @@ validate_builtin_function :: proc(call: AST_FunctionCall, error_tracker: ^ErrorT
 // Name resolution implementation
 resolve_names :: proc(resolver: ^NameResolver, program: ^AST_Program, error_tracker: ^ErrorTracker) {
     // Two-pass resolution: first pass for definitions, second for everything else
-    
+
     // First pass: collect function and variable definitions
     for &def in program.definitions {
         switch &d in def {
@@ -249,13 +249,13 @@ resolve_names :: proc(resolver: ^NameResolver, program: ^AST_Program, error_trac
             }
         }
     }
-    
+
     // Second pass: process function bodies
     for &def in program.definitions {
         switch &d in def {
         case AST_FunDef:
             new_scope(&resolver.symbol_table)
-            
+
             // Add parameters to scope with redefinition checking
             for &param in d.parameters {
                 if !insert_def(&resolver.symbol_table, param.name, &param, DefinitionType.PARAM_DEF) {
@@ -263,12 +263,12 @@ resolve_names :: proc(resolver: ^NameResolver, program: ^AST_Program, error_trac
                     error_tracker.error_count += 1
                 }
             }
-            
+
             // Process statements
             for stmt in d.statements {
                 resolve_names_statement(resolver, stmt, error_tracker)
             }
-            
+
             old_scope(&resolver.symbol_table)
         case AST_VarDef:
             // Already processed in first pass
@@ -298,7 +298,7 @@ resolve_names_statement :: proc(resolver: ^NameResolver, stmt: AST_Statement, er
         }
     case AST_LetStmt:
         new_scope(&resolver.symbol_table)
-        
+
         // First pass: collect definitions
         for &def in s.definitions {
             switch &d in def {
@@ -317,7 +317,7 @@ resolve_names_statement :: proc(resolver: ^NameResolver, stmt: AST_Statement, er
                 }
             }
         }
-        
+
         // Second pass: process function bodies
         for &def in s.definitions {
             switch &d in def {
@@ -337,12 +337,12 @@ resolve_names_statement :: proc(resolver: ^NameResolver, stmt: AST_Statement, er
                 // Already processed
             }
         }
-        
+
         // Process let body statements
         for let_stmt in s.statements {
             resolve_names_statement(resolver, let_stmt, error_tracker)
         }
-        
+
         old_scope(&resolver.symbol_table)
     }
 }
@@ -368,7 +368,7 @@ resolve_names_expression :: proc(resolver: ^NameResolver, expr: ^AST_Expression,
                 resolver.attr_ast.attrs.name_defs[rawptr(expr)] = def
             }
         }
-        
+
         for arg in e.arguments {
             resolve_names_expression(resolver, arg, error_tracker)
         }
@@ -407,10 +407,10 @@ resolve_types_function :: proc(resolver: ^TypeResolver, fun_def: AST_FunDef, err
     if len(fun_def.statements) == 0 {
         return
     }
-    
+
     last_stmt := fun_def.statements[len(fun_def.statements) - 1]
     check_return_stmt(resolver, last_stmt, fun_def.name.name, error_tracker)
-    
+
     for stmt in fun_def.statements {
         resolve_types_statement(resolver, stmt, error_tracker)
     }
@@ -505,7 +505,7 @@ resolve_types_expression :: proc(resolver: ^TypeResolver, expr: ^AST_Expression,
                 }
             }
         }
-        
+
         for arg in e.arguments {
             resolve_types_expression(resolver, arg, error_tracker)
         }
@@ -550,7 +550,7 @@ resolve_lvals_statement :: proc(resolver: ^LValResolver, stmt: AST_Statement, er
     case AST_AssignmentStmt:
         resolve_lvals_expression(resolver, s.expression, error_tracker)
         resolve_lvals_expression(resolver, s.value, error_tracker)
-        
+
         // Check that left side is an l-value
         if lval, ok := resolver.attr_ast.attrs.lval_map[rawptr(s.expression)]; ok && !lval {
             loc_printf_nofatal(.ERROR, Location{0, 0}, "Left-hand side of an assignment must be a variable or expression with VALUEAT operator (postfix ^)")
@@ -598,7 +598,7 @@ resolve_lvals_expression :: proc(resolver: ^LValResolver, expr: ^AST_Expression,
         resolver.attr_ast.attrs.lval_map[rawptr(expr)] = false
     case AST_UnaryOp:
         resolve_lvals_expression(resolver, e.operand, error_tracker)
-        
+
         if e.operator == .CARET {
             // Note: In this simple implementation, we assume ^ is always VALUEAT (postfix)
             // A more sophisticated parser would distinguish between prefix and postfix
@@ -634,13 +634,13 @@ cleanup_semantic_attrs :: proc(attrs: ^SemanticAttr) {
 // Print semantic analysis results
 print_semantic_info :: proc(attr_ast: ^AttrAST) {
     printf(.INFO, "=== Semantic Analysis Results ===")
-    
+
     printf(.INFO, "Name definitions found: %d", len(attr_ast.attrs.name_defs))
     for expr_ptr, def_ptr in attr_ast.attrs.name_defs {
         // This would need more sophisticated printing based on the actual expression types
         printf(.INFO, "  Name expression -> Definition")
     }
-    
+
     printf(.INFO, "L-value expressions: %d", len(attr_ast.attrs.lval_map))
     lval_count := 0
     for expr_ptr, is_lval in attr_ast.attrs.lval_map {
