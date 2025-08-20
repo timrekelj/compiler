@@ -1,0 +1,23 @@
+var global_num = 42
+
+fun add(x, y) = x + y
+
+fun test_arithmetic() =
+    let
+        var a = 5
+        var b = 3
+        var result = add(a, b)
+    in
+        putint(result)
+    end
+
+fun test_global() = putint(global_num)
+
+fun main() =
+    let
+        var local_val = 10
+    in
+        putint(local_val),
+        test_arithmetic(),
+        test_global()
+    end

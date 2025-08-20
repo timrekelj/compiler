@@ -1,0 +1,132 @@
+
+var global_int = 42
+var global_char = 'X'
+var global_string = "Global String"
+var global_array = 1, 2, 3, 4, 5
+var global_mixed = 10, 'A', "test"
+
+
+fun no_params() = 
+    let
+        var local1 = 100
+        var local2 = "local"
+    in
+        putint(local1)
+    end
+
+
+fun multi_params(a, b, c, d) =
+    let
+        var result = a + b + c + d
+        var temp = "processing"
+    in
+        putint(result)
+    end
+
+
+fun outer_func(x) =
+    let
+        var outer_var = x * 2
+        
+        fun middle_func(y) =
+            let
+                var middle_var = y + outer_var
+                
+                fun inner_func(z) =
+                    let
+                        var inner_var = z + middle_var
+                        var inner_string = "deep"
+                    in
+                        putint(inner_var)
+                    end
+            in
+                inner_func(middle_var)
+            end
+        
+        var another_outer = "outer"
+    in
+        middle_func(outer_var)
+    end
+
+
+fun complex_lets(param1, param2) =
+    let
+        var let1_var1 = param1
+        var let1_var2 = "first let"
+        
+        fun nested_in_let(n) =
+            let
+                var nested_var = n
+            in
+                putint(nested_var)
+            end
+    in
+        let
+            var let2_var1 = param2
+            var let2_var2 = let1_var1 + param2
+            
+            fun another_nested(m) = m + let2_var1
+        in
+            putint(let2_var2),
+            nested_in_let(let1_var1)
+        end
+    end
+
+
+fun main() =
+    let
+        var main_local1 = 999
+        var main_local2 = "main"
+        var main_array = 7, 8, 9
+        
+        fun main_helper(h) =
+            let
+                var helper_var = h
+            in
+                putint(helper_var)
+            end
+    in
+        no_params(),
+        multi_params(1, 2, 3, 4),
+        outer_func(main_local1),
+        complex_lets(main_local1, 42),
+        main_helper(main_local1)
+    end
+
+
+fun initializer_test() =
+    let
+        var int_init = 123
+        var char_init = 'Z'
+        var string_init = "initialized"
+        var multi_int = 10, 20, 30, 40
+        var multi_char = 'a', 'b', 'c'
+        var multi_string = "one", "two", "three"
+        var escaped_char = '\n'
+        var escaped_string = "line1\nline2"
+    in
+        putint(int_init)
+    end
+
+
+fun depth_test_1() =
+    let
+        fun depth_test_2() =
+            let
+                fun depth_test_3() =
+                    let
+                        fun depth_test_4() =
+                            let
+                                var deepest = "very deep"
+                            in
+                                putstr(deepest)
+                            end
+                    in
+                        depth_test_4()
+                    end
+            in
+                depth_test_3()
+            end
+    in
+        depth_test_2()
+    end

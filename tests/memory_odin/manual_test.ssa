@@ -1,0 +1,8 @@
+export
+function w $main() {
+@start
+    %result =w call $puts(l $test_string)
+    ret 0
+}
+
+data $test_string = { b 52, b 50, b 10, b 0 }

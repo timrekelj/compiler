@@ -1,0 +1,12 @@
+fun add(x, y) = x + y
+
+fun multiply(a, b, c) = a * b * c
+
+fun main() = 
+    let
+        var result = add(5, 3)
+    in
+        putint(result)
+    end
+
+var global_val = 100

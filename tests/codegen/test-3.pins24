@@ -1,0 +1,14 @@
+fun main()=
+    let
+        var x=3,4
+        var i=0
+    in
+        inc(10)
+    end
+
+fun inc(n)=n+1
+
+var y=2*5
+
+fun putstr(straddr)
+fun putint(intvalue)

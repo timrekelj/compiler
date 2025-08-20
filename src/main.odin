@@ -15,6 +15,7 @@ main :: proc() {
 	lex_only := false
 	parse_only := false
 	semantic_only := false
+	memory_only := false
 	codegen_only := false
 	executable := false
 	filename := ""
@@ -28,6 +29,8 @@ main :: proc() {
     			parse_only = true
     		case "-s", "--semantic-only":
     			semantic_only = true
+    		case "-m", "--memory-only":
+    			memory_only = true
     		case "-c", "--codegen-only":
     			codegen_only = true
     		case "-e", "--executable":
@@ -91,8 +94,35 @@ main :: proc() {
 		return
 	}
 
-	// QBE Code generation
-	qbe_code := generate_qbe_code(attr_ast)
+	// Memory organization
+	memory_attr_ast := organize_memory(attr_ast)
+	if memory_attr_ast == nil {
+		printf(.ERROR, "Memory organization failed")
+		os.exit(1)
+	}
+	defer cleanup_memory_attrs(&memory_attr_ast.memory_attrs)
+
+	if memory_only {
+		print_memory_info(memory_attr_ast)
+		return
+	}
+
+	// Code generation
+	codegen_attr_ast := generate_code(memory_attr_ast)
+	if codegen_attr_ast == nil {
+		printf(.ERROR, "Code generation failed")
+		os.exit(1)
+	}
+	defer cleanup_codegen_attrs(&codegen_attr_ast.codegen_attrs)
+
+	// Get QBE code from generated instructions
+	qbe_code := ""
+	if instructions, exists := codegen_attr_ast.codegen_attrs.instructions[rawptr(memory_attr_ast.ast)]; exists {
+		qbe_code = qbe_to_string(instructions)
+	} else {
+		printf(.ERROR, "No instructions generated")
+		os.exit(1)
+	}
 
 	if codegen_only {
 		fmt.println(qbe_code)
@@ -202,6 +232,7 @@ print_help :: proc() {
 	fmt.println("\t-l, --lex-only      Stop after lexical analysis")
 	fmt.println("\t-p, --parse-only    Stop after syntax analysis")
 	fmt.println("\t-s, --semantic-only Stop after semantic analysis")
+	fmt.println("\t-m, --memory-only   Stop after memory organization")
 	fmt.println("\t-c, --codegen-only  Stop after QBE code generation (print to stdout)")
 	fmt.println("\t-e, --executable    Generate an executable file using QBE backend")
 	fmt.println("\t-h, --help          Show this help message")

@@ -1,0 +1,34 @@
+fun main() =
+    let
+        var n = 0
+        var s = "ABC"
+        fun inc(m) =
+            let
+                var ma = 3
+                var ss = "Niz"
+                fun f(a) = a + 1
+            in
+                m = f(ma),
+                f(3)
+            end
+    in
+        n = inc(n + 3),
+        putint(n)
+    end
+
+var a = 3, 4, 5
+var b = "Global"
+
+fun outer(x) =
+    let
+        var local1 = x
+        fun inner(y) =
+            let
+                var local2 = y
+                fun deepest(z) = z + local1 + local2
+            in
+                deepest(1)
+            end
+    in
+        inner(local1)
+    end

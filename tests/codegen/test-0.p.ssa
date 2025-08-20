@@ -1,0 +1,16 @@
+export
+function w $main() {
+@start
+    %t0 =w call $inc(w 5)
+    ret %t0
+}
+
+export
+function w $inc(w %n) {
+@start
+    %m =w copy 0
+    %m =w copy %n
+    %t1 =w add %m, 1
+    ret %t1
+}
+

@@ -1,0 +1,20 @@
+fun main()=
+    let
+	var m=5
+	fun f1(p1)=
+	    let
+		var v1=7
+		fun f2(p2)=
+		    let
+			var v2=9
+		    in
+			v2+v1+m
+		    end
+	    in
+		f2(3)
+	    end
+    in
+	f1(11)
+    end
+
+var n=19

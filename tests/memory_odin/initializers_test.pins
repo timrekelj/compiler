@@ -1,0 +1,29 @@
+var int_var = 42
+var char_var = 'A'
+var string_var = "Hello World"
+var multi_int = 1, 2, 3, 4, 5
+var multi_char = 'a', 'b', 'c'
+var multi_string = "first", "second", "third"
+var hex_int = 255
+var escaped_char = '\n'
+var escaped_string = "Line 1\nLine 2"
+var zero_terminated = "String\00"
+
+fun main() =
+    let
+        var local_int = 123
+        var local_char = 'Z'
+        var local_string = "local"
+        var local_multi = 10, 20, 30
+    in
+        putint(int_var),
+        putint(local_int)
+    end
+
+fun test_params(x, y, z) =
+    let
+        var param_copy = x
+        var result = y + z
+    in
+        putint(result)
+    end

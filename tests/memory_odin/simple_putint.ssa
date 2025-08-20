@@ -1,0 +1,29 @@
+export
+function w $main() {
+@start
+    %t0 =w call $print_int(w 42)
+    ret %t0
+}
+
+function w $print_int(w %value) {
+@start
+    # Simple approach: handle common cases
+    %is_zero =w ceqw %value, 0
+    jnz %is_zero, @print_zero, @check_small
+@print_zero
+    %result1 =w call $puts(l $str_0)
+    ret %result1
+@check_small
+    %is_42 =w ceqw %value, 42
+    jnz %is_42, @print_42, @print_default
+@print_42
+    %result2 =w call $puts(l $str_42)
+    ret %result2
+@print_default
+    %result3 =w call $puts(l $str_num)
+    ret %result3
+}
+
+data $str_0 = { b 48, b 0 }  # "0"
+data $str_42 = { b 52, b 50, b 0 }  # "42"
+data $str_num = { b 78, b 85, b 77, b 0 }  # "NUM"

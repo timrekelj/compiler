@@ -1,0 +1,12 @@
+fun main() =
+    let
+        var x = 42
+        var y = "hello"
+        fun add(a, b) = a + b
+    in
+        x = add(x, 10),
+        putint(x)
+    end
+
+var global_var = 100
+var global_string = "world"

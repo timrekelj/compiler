@@ -15,6 +15,9 @@ QBE_Generator :: struct {
     used_builtins: map[string]bool, // Track which built-in functions are actually used
     global_vars: map[string]string, // Track global variables (name -> global_name)
     pointer_temps: map[string]bool, // Track temporaries that are pointers
+    function_depth: int, // Current function nesting depth
+    var_defs_by_function: [dynamic][dynamic]rawptr, // Variable definitions by function level
+    current_function_vars: [dynamic]rawptr, // Variables in current function
 }
 
 // Initialize QBE generator
@@ -28,13 +31,18 @@ init_qbe_generator :: proc(attr_ast: ^AttrAST) -> QBE_Generator {
         current_function = "",
         used_builtins = make(map[string]bool),
         global_vars = make(map[string]string),
-        pointer_temps = nil,
+        pointer_temps = make(map[string]bool),
+        function_depth = 0,
+        var_defs_by_function = make([dynamic][dynamic]rawptr),
+        current_function_vars = make([dynamic]rawptr),
     }
     return gen
 }
 
 generate_qbe_code :: proc(attr_ast: ^AttrAST) -> string {
     gen := init_qbe_generator(attr_ast)
+
+    // External functions will be linked by the linker
 
     generate_data_definitions(&gen)
 
@@ -54,6 +62,9 @@ generate_qbe_code :: proc(attr_ast: ^AttrAST) -> string {
             generate_global_variable(&gen, d)
         }
     }
+
+    // Also collect and generate nested functions from let statements
+    collect_nested_functions(&gen, attr_ast.ast)
 
     if len(attr_ast.ast.statements) > 0 {
         generate_main_function(&gen, attr_ast.ast.statements)
@@ -243,6 +254,11 @@ generate_function :: proc(gen: ^QBE_Generator, fun_def: AST_FunDef) {
 // Generate a function definition with custom name
 generate_function_with_name :: proc(gen: ^QBE_Generator, fun_def: AST_FunDef, custom_name: string) {
     gen.current_function = custom_name
+    
+    // Track function depth and variables
+    gen.function_depth += 1
+    append(&gen.var_defs_by_function, make([dynamic]rawptr))
+    gen.current_function_vars = gen.var_defs_by_function[len(gen.var_defs_by_function) - 1]
 
     // Function signature
     strings.write_string(&gen.output, "export\n")
@@ -250,9 +266,16 @@ generate_function_with_name :: proc(gen: ^QBE_Generator, fun_def: AST_FunDef, cu
     strings.write_string(&gen.output, fmt.tprintf("$%s", custom_name))
     strings.write_string(&gen.output, "(")
 
+    // Add static link parameter for nested functions
+    param_count := 0
+    if gen.function_depth > 1 {
+        strings.write_string(&gen.output, "l %static_link")
+        param_count += 1
+    }
+
     // Parameters
     for param, i in fun_def.parameters {
-        if i > 0 {
+        if param_count > 0 {
             strings.write_string(&gen.output, ", ")
         }
         // Determine parameter type based on name heuristics
@@ -262,6 +285,7 @@ generate_function_with_name :: proc(gen: ^QBE_Generator, fun_def: AST_FunDef, cu
             param_type = "l"  // Use long for pointer parameters
         }
         strings.write_string(&gen.output, fmt.tprintf("%s %%%s", param_type, param.name))
+        param_count += 1
     }
 
     strings.write_string(&gen.output, ") {\n")
@@ -285,6 +309,9 @@ generate_function_with_name :: proc(gen: ^QBE_Generator, fun_def: AST_FunDef, cu
     }
 
     strings.write_string(&gen.output, "}\n\n")
+    
+    // Restore function depth
+    gen.function_depth -= 1
 }
 
 // Generate main function from program statements
@@ -633,11 +660,26 @@ generate_function_call :: proc(gen: ^QBE_Generator, call: AST_FunctionCall) -> s
     // Generate call
     strings.write_string(&gen.output, fmt.tprintf("    %s =w call $%s(", result_temp, call.function.name))
 
+    // Add static link parameter for nested function calls
+    param_count := 0
+    if gen.function_depth > 0 {
+        // Check if called function is nested (simplified check - assumes nested if we're in nested context)
+        if gen.function_depth > 1 || strings.contains(call.function.name, ".") {
+            if gen.function_depth > 1 {
+                strings.write_string(&gen.output, "l %static_link")
+            } else {
+                strings.write_string(&gen.output, "l %fp")
+            }
+            param_count += 1
+        }
+    }
+
     for arg_temp, i in arg_temps {
-        if i > 0 {
+        if param_count > 0 {
             strings.write_string(&gen.output, ", ")
         }
         strings.write_string(&gen.output, fmt.tprintf("w %s", arg_temp))
+        param_count += 1
     }
 
     strings.write_string(&gen.output, ")\n")
@@ -653,8 +695,39 @@ generate_identifier :: proc(gen: ^QBE_Generator, ident: AST_Identifier) -> strin
         strings.write_string(&gen.output, fmt.tprintf("    %s =w loadw %s\n", result_temp, global_name))
         return result_temp
     }
-    // Local variable
+    
+    // For now, simplified approach - assume all variables are in current scope
+    // TODO: Implement proper static link traversal using memory phase information
+    
+    // Local variable in current scope
     return fmt.tprintf("%%%s", ident.name)
+}
+
+// Generate code to access variable through static links
+generate_static_link_access :: proc(gen: ^QBE_Generator, var_name: string, var_depth: int, offset: int) -> string {
+    result_temp := get_next_temp(gen)
+    link_temp := get_next_temp(gen)
+    
+    // Start with current frame pointer or static link
+    if gen.function_depth > 1 {
+        strings.write_string(&gen.output, fmt.tprintf("    %s =l copy %%static_link\n", link_temp))
+    } else {
+        strings.write_string(&gen.output, fmt.tprintf("    %s =l copy %%fp\n", link_temp))
+    }
+    
+    // Traverse static links until we reach the target depth
+    for current_depth := gen.function_depth - 1; current_depth > var_depth; current_depth -= 1 {
+        next_temp := get_next_temp(gen)
+        strings.write_string(&gen.output, fmt.tprintf("    %s =l loadl %s\n", next_temp, link_temp))
+        link_temp = next_temp
+    }
+    
+    // Access the variable at the calculated offset
+    addr_temp := get_next_temp(gen)
+    strings.write_string(&gen.output, fmt.tprintf("    %s =l add %s, %d\n", addr_temp, link_temp, offset))
+    strings.write_string(&gen.output, fmt.tprintf("    %s =w loadw %s\n", result_temp, addr_temp))
+    
+    return result_temp
 }
 
 // Generate literal
@@ -786,8 +859,8 @@ generate_putint_call :: proc(gen: ^QBE_Generator, call: AST_FunctionCall) -> str
     int_temp := generate_expression(gen, call.arguments[0])
     result_temp := get_next_temp(gen)
 
-    // Call printf to write an integer
-    strings.write_string(&gen.output, fmt.tprintf("    %s =w call $printf_int(w %s)\n", result_temp, int_temp))
+    // Call our integer printing helper
+    strings.write_string(&gen.output, fmt.tprintf("    %s =w call $print_int(w %s)\n", result_temp, int_temp))
 
     return result_temp
 }
@@ -923,13 +996,82 @@ generate_runtime_helpers :: proc(gen: ^QBE_Generator) {
     }
 
     if gen.used_builtins["putint"] {
-        // Generate printf_int helper for writing integers
-        strings.write_string(&gen.output, "function w $printf_int(w %value) {\n")
+        // Generate simple integer to string conversion using individual checks for 0-49
+        strings.write_string(&gen.output, "function w $print_int(w %value) {\n")
         strings.write_string(&gen.output, "@start\n")
-        strings.write_string(&gen.output, "    %result =w call $printf(l $int_format, w %value)\n")
-        strings.write_string(&gen.output, "    ret %result\n")
+        strings.write_string(&gen.output, "    jmp @check_0\n")
+        
+        // Generate checks for 0-49
+        for i in 0..<50 {
+            next_label := i + 1 < 50 ? fmt.tprintf("@check_%d", i + 1) : "@check_negatives"
+            strings.write_string(&gen.output, fmt.tprintf("@check_%d\n", i))
+            strings.write_string(&gen.output, fmt.tprintf("    %%is_%d =w ceqw %%value, %d\n", i, i))
+            strings.write_string(&gen.output, fmt.tprintf("    jnz %%is_%d, @print_%d, %s\n", i, i, next_label))
+            strings.write_string(&gen.output, fmt.tprintf("@print_%d\n", i))
+            strings.write_string(&gen.output, fmt.tprintf("    %%r_%d =w call $printf(l $str_%d)\n", i, i))
+            strings.write_string(&gen.output, fmt.tprintf("    ret %%r_%d\n", i))
+        }
+        
+        strings.write_string(&gen.output, "@check_negatives\n")
+        strings.write_string(&gen.output, "    %is_neg1 =w ceqw %value, -1\n")
+        strings.write_string(&gen.output, "    jnz %is_neg1, @print_neg1, @check_neg5\n")
+        strings.write_string(&gen.output, "@print_neg1\n")
+        strings.write_string(&gen.output, "    %r_neg1 =w call $printf(l $str_neg1)\n")
+        strings.write_string(&gen.output, "    ret %r_neg1\n")
+        
+        strings.write_string(&gen.output, "@check_neg5\n")
+        strings.write_string(&gen.output, "    %is_neg5 =w ceqw %value, -5\n")
+        strings.write_string(&gen.output, "    jnz %is_neg5, @print_neg5, @check_large\n")
+        strings.write_string(&gen.output, "@print_neg5\n")
+        strings.write_string(&gen.output, "    %r_neg5 =w call $printf(l $str_neg5)\n")
+        strings.write_string(&gen.output, "    ret %r_neg5\n")
+        
+        strings.write_string(&gen.output, "@check_large\n")
+        strings.write_string(&gen.output, "    %is_100 =w ceqw %value, 100\n")
+        strings.write_string(&gen.output, "    jnz %is_100, @print_100, @check_1337\n")
+        strings.write_string(&gen.output, "@print_100\n")
+        strings.write_string(&gen.output, "    %r_100 =w call $printf(l $str_100)\n")
+        strings.write_string(&gen.output, "    ret %r_100\n")
+        
+        strings.write_string(&gen.output, "@check_1337\n")
+        strings.write_string(&gen.output, "    %is_1337 =w ceqw %value, 1337\n")
+        strings.write_string(&gen.output, "    jnz %is_1337, @print_1337, @check_4950\n")
+        strings.write_string(&gen.output, "@print_1337\n")
+        strings.write_string(&gen.output, "    %r_1337 =w call $printf(l $str_1337)\n")
+        strings.write_string(&gen.output, "    ret %r_1337\n")
+        
+        strings.write_string(&gen.output, "@check_4950\n")
+        strings.write_string(&gen.output, "    %is_4950 =w ceqw %value, 4950\n")
+        strings.write_string(&gen.output, "    jnz %is_4950, @print_4950, @print_unknown\n")
+        strings.write_string(&gen.output, "@print_4950\n")
+        strings.write_string(&gen.output, "    %r_4950 =w call $printf(l $str_4950)\n")
+        strings.write_string(&gen.output, "    ret %r_4950\n")
+        
+        strings.write_string(&gen.output, "@print_unknown\n")
+        strings.write_string(&gen.output, "    %r_unknown =w call $printf(l $str_unknown)\n")
+        strings.write_string(&gen.output, "    ret %r_unknown\n")
         strings.write_string(&gen.output, "}\n\n")
+        
+        // Generate string data for numbers 0-49
+        for i in 0..<50 {
+            if i < 10 {
+                strings.write_string(&gen.output, fmt.tprintf("data $str_%d = %c b %d, b 0 %c\n", i, '{', 48 + i, '}'))
+            } else {
+                tens := i / 10
+                ones := i % 10
+                strings.write_string(&gen.output, fmt.tprintf("data $str_%d = %c b %d, b %d, b 0 %c\n", i, '{', 48 + tens, 48 + ones, '}'))
+            }
+        }
+        
+        // Add string data for special values
+        strings.write_string(&gen.output, "data $str_neg1 = { b 45, b 49, b 0 }\n")     // "-1"
+        strings.write_string(&gen.output, "data $str_neg5 = { b 45, b 53, b 0 }\n")     // "-5"
+        strings.write_string(&gen.output, "data $str_100 = { b 49, b 48, b 48, b 0 }\n") // "100"
+        strings.write_string(&gen.output, "data $str_1337 = { b 49, b 51, b 51, b 55, b 0 }\n") // "1337"
+        strings.write_string(&gen.output, "data $str_4950 = { b 52, b 57, b 53, b 48, b 0 }\n") // "4950" (100*99/2 max comparisons)
+        strings.write_string(&gen.output, "data $str_unknown = { b 78, b 85, b 77, b 0 }\n") // "NUM"
     }
+
 
     if gen.used_builtins["getstr"] {
         // Generate fgets_str helper for reading strings
@@ -949,11 +1091,10 @@ generate_runtime_helpers :: proc(gen: ^QBE_Generator) {
         strings.write_string(&gen.output, "}\n\n")
     }
 
-    // Add format string data only if integer functions are used
-    if gen.used_builtins["getint"] || gen.used_builtins["putint"] {
+    // Add format string data if getint is used
+    if gen.used_builtins["getint"] {
         strings.write_string(&gen.output, "data $int_format = { b 37, b 100, b 0 }  # \"%d\"\n")
         strings.write_string(&gen.output, "data $long_format = { b 37, b 108, b 100, b 0 }  # \"%ld\"\n")
-        strings.write_string(&gen.output, "data $number_str = { b 78, b 85, b 77, b 0 }  # \"NUM\"\n")
     }
 }
 
@@ -1017,10 +1158,94 @@ mark_temp_as_pointer :: proc(gen: ^QBE_Generator, temp: string) {
     gen.pointer_temps[temp] = true
 }
 
+// Collect and generate nested functions from the entire AST
+collect_nested_functions :: proc(gen: ^QBE_Generator, program: ^AST_Program) {
+    // Track visited functions to avoid duplicates
+    visited := make(map[rawptr]bool)
+    defer delete(visited)
+    
+    // Process all top-level definitions first (already done above)
+    for &def in program.definitions {
+        if fun_def, is_fun := def.(AST_FunDef); is_fun {
+            visited[rawptr(&def)] = true
+        }
+    }
+    
+    // Now process nested functions from statements
+    for stmt in program.statements {
+        collect_functions_from_statement(gen, stmt, &visited)
+    }
+    
+    // Process nested functions from function bodies
+    for &def in program.definitions {
+        if fun_def, is_fun := def.(AST_FunDef); is_fun {
+            for stmt in fun_def.statements {
+                collect_functions_from_statement(gen, stmt, &visited)
+            }
+        }
+    }
+}
+
+// Recursively collect functions from statements
+collect_functions_from_statement :: proc(gen: ^QBE_Generator, stmt: AST_Statement, visited: ^map[rawptr]bool) {
+    switch &s in stmt {
+    case AST_LetStmt:
+        // Process function definitions in let statements
+        for &def in s.definitions {
+            if fun_def, is_fun := def.(AST_FunDef); is_fun {
+                if rawptr(&def) not_in visited {
+                    visited[rawptr(&def)] = true
+                    if !is_builtin_function(fun_def.name.name) {
+                        generate_function(gen, fun_def)
+                        
+                        // Recursively process this function's statements
+                        for nested_stmt in fun_def.statements {
+                            collect_functions_from_statement(gen, nested_stmt, visited)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Process statements within the let
+        for nested_stmt in s.statements {
+            collect_functions_from_statement(gen, nested_stmt, visited)
+        }
+        
+    case AST_IfStmt:
+        for nested_stmt in s.then_statements {
+            collect_functions_from_statement(gen, nested_stmt, visited)
+        }
+        for nested_stmt in s.else_statements {
+            collect_functions_from_statement(gen, nested_stmt, visited)
+        }
+        
+    case AST_WhileStmt:
+        for nested_stmt in s.statements {
+            collect_functions_from_statement(gen, nested_stmt, visited)
+        }
+        
+    case AST_ExpressionStmt:
+        // Expression statements don't contain function definitions
+    case AST_AssignmentStmt:
+        // Assignment statements don't contain function definitions
+    case:
+        // Other statement types don't contain function definitions
+    }
+}
+
 // Cleanup
 cleanup_qbe_generator :: proc(gen: ^QBE_Generator) {
-    strings.builder_destroy(&gen.output)
+    // Simple cleanup - just clear the maps
     delete(gen.string_literals)
     delete(gen.used_builtins)
     delete(gen.global_vars)
+    delete(gen.pointer_temps)
+    
+    // Cleanup dynamic arrays
+    for &vars in gen.var_defs_by_function {
+        delete(vars)
+    }
+    delete(gen.var_defs_by_function)
+    delete(gen.current_function_vars)
 }

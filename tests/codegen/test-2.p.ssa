@@ -1,0 +1,27 @@
+export
+function w $main() {
+@start
+    %m =w copy 5
+    %t0 =w call $f1(w 11)
+    ret %t0
+}
+
+data $n = { w 19 }
+
+export
+function w $f1(w %p1) {
+@start
+    %v1 =w copy 7
+    %t1 =w call $f2(w 3)
+    ret %t1
+}
+
+export
+function w $f2(w %p2) {
+@start
+    %v2 =w copy 9
+    %t2 =w add %v2, %v1
+    %t3 =w add %t2, %m
+    ret %t3
+}
+

@@ -1,0 +1,10 @@
+var global_x = 42
+
+fun simple() = 
+    let
+        var local_y = 10
+    in
+        putint(local_y)
+    end
+
+fun main() = simple()
