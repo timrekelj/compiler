@@ -1,0 +1,29 @@
+
+var seed=2
+fun random()=seed=seed*1664525+1013904223,seed
+
+fun main()=
+	let
+		var r=0
+	in
+        print_random(),
+        print_random(),
+        print_random(),
+        print_random(),
+        print_random(),
+        0
+    end
+
+fun print_random()=
+    let
+        var r=0
+    in 
+        r=random(),
+        putstr("Random : "),
+        putint(r),
+        putstr("\n"),
+        0
+    end
+
+fun putint(intvalue)
+fun putstr(straddr)
